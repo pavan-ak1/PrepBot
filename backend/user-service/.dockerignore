@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+npm-debug.log
+
+# Build artifacts
+dist/
+build/
+.next/
+
+# Environment and Secrets
+.env
+.env.*
+.npmrc
+
+# Version Control
+.git
+.gitignore
+
+# Docker Files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# OS metadata
+.DS_Store
+Thumbs.db

@@ -1,0 +1,48 @@
+{
+  "name": "jobprep-service",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@google/genai": "^2.6.0",
+    "@langchain/cerebras": "^1.0.4",
+    "@langchain/core": "^1.1.47",
+    "@langchain/mistralai": "^1.0.8",
+    "@mistralai/mistralai": "^2.2.1",
+    "@types/cors": "^2.8.19",
+    "@types/pdf-parse": "^1.1.5",
+    "axios": "^1.16.1",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.3.1",
+    "multer": "^2.1.1",
+    "pdf-parse": "^2.4.5",
+    "pdf-parser": "^1.0.5",
+    "redis": "^5.11.0",
+    "uuid": "^13.0.0",
+    "zod-to-json-schema": "^3.25.2"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.1.0",
+    "ts-node": "^10.9.2",
+    "tsc-watch": "^7.2.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,64 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongo
+      - redis
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/userdb
+      - JWT_SECRET=4e82249a8f390a2fdb61d93fb3f84d175f196665728629a038697a6c440c09d8
+      - REDIS_URL=redis://redis:6379
+
+  jobprep-service:
+    build: ./jobPrep-service
+    container_name: jobprep-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongo
+      - redis
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/jobprep
+      - JWT_SECRET=4e82249a8f390a2fdb61d93fb3f84d175f196665728629a038697a6c440c09d8
+      - GEMINI_API_KEY=AIzaSyCptdDvM71vXhFfAr7AEk9ReF_c8j7Ceds
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./jobPrep-service:/app
+      - /app/node_modules
+
+  interview-session-service:
+    build: ./interview-session-service
+    container_name: interview-session-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - mongo
+      - redis
+    environment:
+      - PORT=8082
+      - MONGO_URI=mongodb://mongo:27017/interview-session-service
+      - JWT_SECRET=4e82249a8f390a2fdb61d93fb3f84d175f196665728629a038697a6c440c09d8
+      - GEMINI_API_KEY=AQ.Ab8RN6Jz2RtYCXqz9QVuM6ChaIw9f2eEU_bmhNGOboGBk-oPHg
+      - JOBPREP_SERVICE_URL=http://jobprep-service:8081/api/v1/interview
+      - REDIS_URL=redis://redis:6379
+    
+
+volumes:
+  mongo_data:
