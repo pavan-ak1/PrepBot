@@ -13,6 +13,22 @@ services:
     ports:
       - "6379:6379"
 
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "3000:3000"
+    depends_on:
+      - user-service
+      - jobprep-service
+      - interview-session-service
+    environment:
+      - PORT=3000
+      - USER_SERVICE=http://user-service:8080
+      - JOBPREP_SERVICE=http://jobprep-service:8081
+      - SESSION_SERVICE=http://interview-session-service:8082
+      - JWT_SECRET=4e82249a8f390a2fdb61d93fb3f84d175f196665728629a038697a6c440c09d8
+
   user-service:
     build: ./user-service
     container_name: user-service
@@ -58,7 +74,6 @@ services:
       - GEMINI_API_KEY=AQ.Ab8RN6Jz2RtYCXqz9QVuM6ChaIw9f2eEU_bmhNGOboGBk-oPHg
       - JOBPREP_SERVICE_URL=http://jobprep-service:8081/api/v1/interview
       - REDIS_URL=redis://redis:6379
-    
 
 volumes:
   mongo_data:
