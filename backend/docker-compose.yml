@@ -27,7 +27,7 @@ services:
       - USER_SERVICE=http://user-service:8080
       - JOBPREP_SERVICE=http://jobprep-service:8081
       - SESSION_SERVICE=http://interview-session-service:8082
-      - JWT_SECRET=4e82249a8f390a2fdb61d93fb3f84d175f196665728629a038697a6c440c09d8
+      - JWT_SECRET=key
 
   user-service:
     build: ./user-service
@@ -39,7 +39,7 @@ services:
       - redis
     environment:
       - MONGO_URI=mongodb://mongo:27017/userdb
-      - JWT_SECRET=4e82249a8f390a2fdb61d93fb3f84d175f196665728629a038697a6c440c09d8
+      - JWT_SECRET=key
       - REDIS_URL=redis://redis:6379
 
   jobprep-service:
@@ -52,8 +52,8 @@ services:
       - redis
     environment:
       - MONGO_URI=mongodb://mongo:27017/jobprep
-      - JWT_SECRET=4e82249a8f390a2fdb61d93fb3f84d175f196665728629a038697a6c440c09d8
-      - GEMINI_API_KEY=AIzaSyCptdDvM71vXhFfAr7AEk9ReF_c8j7Ceds
+      - JWT_SECRET=key
+      - GEMINI_API_KEY=Your_Api_key
       - REDIS_URL=redis://redis:6379
     volumes:
       - ./jobPrep-service:/app
@@ -70,8 +70,8 @@ services:
     environment:
       - PORT=8082
       - MONGO_URI=mongodb://mongo:27017/interview-session-service
-      - JWT_SECRET=4e82249a8f390a2fdb61d93fb3f84d175f196665728629a038697a6c440c09d8
-      - GEMINI_API_KEY=AQ.Ab8RN6Jz2RtYCXqz9QVuM6ChaIw9f2eEU_bmhNGOboGBk-oPHg
+      - JWT_SECRET=key
+      - GEMINI_API_KEY=Your_Api_key
       - JOBPREP_SERVICE_URL=http://jobprep-service:8081/api/v1/interview
       - REDIS_URL=redis://redis:6379
 
