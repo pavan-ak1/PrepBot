@@ -17,17 +17,19 @@ services:
     build: ./api-gateway
     container_name: api-gateway
     ports:
-      - "3000:3000"
+      - "${PORT_API_GATEWAY}:3000"
     depends_on:
       - user-service
       - jobprep-service
       - interview-session-service
+      - redis
     environment:
-      - PORT=3000
+      - PORT=${PORT_API_GATEWAY}
       - USER_SERVICE=http://user-service:8080
       - JOBPREP_SERVICE=http://jobprep-service:8081
       - SESSION_SERVICE=http://interview-session-service:8082
-      - JWT_SECRET=4e82249a8f390a2fdb61d93fb3f84d175f196665728629a038697a6c440c09d8
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_URL=${REDIS_URL}
 
   user-service:
     build: ./user-service
@@ -38,9 +40,10 @@ services:
       - mongo
       - redis
     environment:
-      - MONGO_URI=mongodb://mongo:27017/userdb
-      - JWT_SECRET=4e82249a8f390a2fdb61d93fb3f84d175f196665728629a038697a6c440c09d8
-      - REDIS_URL=redis://redis:6379
+      - PORT=${PORT_USER}
+      - MONGO_URI=${MONGO_URI_USER}
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_URL=${REDIS_URL}
 
   jobprep-service:
     build: ./jobPrep-service
@@ -51,10 +54,11 @@ services:
       - mongo
       - redis
     environment:
-      - MONGO_URI=mongodb://mongo:27017/jobprep
-      - JWT_SECRET=4e82249a8f390a2fdb61d93fb3f84d175f196665728629a038697a6c440c09d8
-      - GEMINI_API_KEY=AIzaSyCptdDvM71vXhFfAr7AEk9ReF_c8j7Ceds
-      - REDIS_URL=redis://redis:6379
+      - PORT=${PORT_JOB}
+      - MONGO_URI=${MONGO_URI_JOB_PREP}
+      - JWT_SECRET=${JWT_SECRET}
+      - GEMINI_API_KEY=${GEMINI_API_KEY_JOB_PREP}
+      - REDIS_URL=${REDIS_URL}
     volumes:
       - ./jobPrep-service:/app
       - /app/node_modules
@@ -68,12 +72,12 @@ services:
       - mongo
       - redis
     environment:
-      - PORT=8082
-      - MONGO_URI=mongodb://mongo:27017/interview-session-service
-      - JWT_SECRET=4e82249a8f390a2fdb61d93fb3f84d175f196665728629a038697a6c440c09d8
-      - GEMINI_API_KEY=AQ.Ab8RN6Jz2RtYCXqz9QVuM6ChaIw9f2eEU_bmhNGOboGBk-oPHg
-      - JOBPREP_SERVICE_URL=http://jobprep-service:8081/api/v1/interview
-      - REDIS_URL=redis://redis:6379
+      - PORT=${PORT_SESSION}
+      - MONGO_URI=${MONGO_URI_SESSION}
+      - JWT_SECRET=${JWT_SECRET}
+      - GEMINI_API_KEY=${GEMINI_API_KEY_SESSION}
+      - JOBPREP_SERVICE_URL=${JOBPREP_SERVICE_URL}
+      - REDIS_URL=${REDIS_URL}
 
 volumes:
   mongo_data:

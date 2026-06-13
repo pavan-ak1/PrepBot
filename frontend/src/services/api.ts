@@ -1,25 +1,23 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-const JOBPREP_API_BASE_URL = import.meta.env.VITE_JOBPREP_API_BASE_URL || 'http://localhost:8081';
-const SESSION_API_BASE_URL = import.meta.env.VITE_SESSION_API_BASE_URL || 'http://localhost:8082';
+const GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:3000';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: GATEWAY_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
 const jobPrepApi = axios.create({
-  baseURL: JOBPREP_API_BASE_URL,
+  baseURL: `${GATEWAY_URL}/api/v1/jobprep`,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
 const sessionApi = axios.create({
-  baseURL: SESSION_API_BASE_URL,
+  baseURL: `${GATEWAY_URL}/api/v1/session`,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -103,28 +101,31 @@ export const authAPI = {
 
 export const jobPrepAPI = {
   generateReport: (formData: FormData) =>
-    jobPrepApi.post('/api/v1/interview', formData, {
+    jobPrepApi.post('/', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     }),
   
   getAllReports: () =>
-    jobPrepApi.get('/api/v1/interview/reports'),
+    jobPrepApi.get('/reports'),
   
   getReport: (id: string) =>
-    jobPrepApi.get(`/api/v1/interview/reports/${id}`),
+    jobPrepApi.get(`/reports/${id}`),
 };
 
 export const sessionAPI = {
   startSession: (reportId: string) =>
-    sessionApi.post('/api/v1/session/start', { reportId }),
+    sessionApi.post('/start', { reportId }),
   
   submitAnswer: (sessionId: string, answer: string) =>
-    sessionApi.post('/api/v1/session/answer', { sessionId, answer }),
+    sessionApi.post('/answer', { sessionId, answer }),
   
   getResults: (sessionId: string) =>
-    sessionApi.get(`/api/v1/session/${sessionId}/results`),
+    sessionApi.get(`/${sessionId}/results`),
+
+  getSessionByReport: (reportId: string) =>
+    sessionApi.get(`/report/${reportId}`),
 };
 
 export default api;

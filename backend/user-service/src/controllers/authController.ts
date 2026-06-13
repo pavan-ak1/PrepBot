@@ -66,7 +66,9 @@ export const registerUser = async (req: Request, res: Response) => {
 export const loginUser = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  const user = await userModel.findOne({ email });
+  const user = await userModel.findOne({
+    $or: [{ email: email }, { username: email }]
+  });
 
   if (!user) {
     return res.status(404).json({

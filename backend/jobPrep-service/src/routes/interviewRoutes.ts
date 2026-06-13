@@ -5,17 +5,19 @@ import { generateInterviewReport, getInterviewReportById, getAllInterviewReports
 
 const interviewRoute:Router = Router();
 
-interviewRoute.post('/', authenticateUser, upload.single('resume'), generateInterviewReport)
+interviewRoute.post(
+  '/',
+  upload.single('resume'),
+  generateInterviewReport
+);
 
 interviewRoute.get(
-  "/reports",
-  authenticateUser,
+  '/reports',
   getAllInterviewReports
 );
 
 interviewRoute.get(
-  "/reports/:id",
-  authenticateUser,
+  '/reports/:id',
   getInterviewReportById
 );
 

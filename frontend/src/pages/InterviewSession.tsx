@@ -2,7 +2,19 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { sessionAPI } from '../services/api';
 import type { InterviewSession, Question } from '../types';
-import { ArrowLeft, Send, CheckCircle, Loader2 } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Send, 
+  CheckCircle2, 
+  Loader2, 
+  Info, 
+  Mic, 
+  MicOff, 
+  Award, 
+  CheckCircle, 
+  AlertCircle,
+  HelpCircle
+} from 'lucide-react';
 
 export default function InterviewSession() {
   const { reportId } = useParams<{ reportId: string }>();
@@ -15,6 +27,8 @@ export default function InterviewSession() {
   const [error, setError] = useState('');
   const [evaluation, setEvaluation] = useState<any>(null);
   const [completed, setCompleted] = useState(false);
+  const [showIntention, setShowIntention] = useState(false);
+  const [isMicSimulated, setIsMicSimulated] = useState(false);
 
   useEffect(() => {
     if (reportId) {
@@ -27,9 +41,6 @@ export default function InterviewSession() {
       setLoading(true);
       const sessionResponse = await sessionAPI.startSession(reportId!);
       
-      console.log('Start session response:', sessionResponse.data);
-      
-      // Transform backend response to frontend expected structure
       const sessionData = {
         _id: sessionResponse.data.sessionId,
         questions: [sessionResponse.data.firstQuestion],
@@ -51,27 +62,20 @@ export default function InterviewSession() {
       setSubmitting(true);
       const response = await sessionAPI.submitAnswer(session._id, answer);
       
-      console.log('Submit answer response:', response.data);
-      console.log('Current index:', session.currentQuestionIndex);
-      console.log('Total questions:', (session as any).totalQuestions);
-      
       setEvaluation(response.data.evaluation);
       setAnswer('');
+      setShowIntention(false); // Reset intention help toggle
       
       if (response.data.completed) {
-        console.log('Interview completed');
         setCompleted(true);
         setTimeout(() => {
           navigate(`/results/${session._id}`);
-        }, 2000);
+        }, 2500);
       } else {
-        // Add next question to the array
         if (response.data.nextQuestion) {
-          // Update session with next question and increment index
           setSession((prev: any) => {
             if (!prev) return null;
             const newIndex = prev.currentQuestionIndex + 1;
-            console.log('Moving to index:', newIndex);
             return {
               ...prev,
               questions: [...prev.questions, response.data.nextQuestion],
@@ -89,26 +93,22 @@ export default function InterviewSession() {
 
   const getCurrentQuestion = (): Question | null => {
     if (!session || !session.questions) return null;
-    
-    console.log('Getting question at index:', session.currentQuestionIndex);
-    console.log('Total questions available:', session.questions.length);
-    
-    // Access question by index from the fully populated array
     if (session.currentQuestionIndex < session.questions.length) {
       return session.questions[session.currentQuestionIndex];
     }
-    
     return null;
   };
 
   const currentQuestion = getCurrentQuestion();
+  const wordCount = answer.trim() ? answer.trim().split(/\s+/).length : 0;
+  const charCount = answer.length;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 text-teal-400 animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">Loading interview session...</p>
+          <Loader2 className="h-10 w-10 text-teal-400 animate-spin mx-auto mb-4" />
+          <p className="text-sm text-slate-400">Spinning up AI interview panel...</p>
         </div>
       </div>
     );
@@ -116,8 +116,8 @@ export default function InterviewSession() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center px-4">
-        <div className="bg-rose-500/10 border border-rose-500/50 text-rose-300 px-6 py-4 rounded-lg max-w-md backdrop-blur-sm">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+        <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm px-6 py-4 rounded-xl max-w-md backdrop-blur-sm">
           {error}
         </div>
       </div>
@@ -126,145 +126,234 @@ export default function InterviewSession() {
 
   if (!currentQuestion) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
         <div className="text-center">
-          <CheckCircle className="h-12 w-12 text-emerald-400 mx-auto mb-4" />
-          <p className="text-white">Interview completed!</p>
+          <CheckCircle2 className="h-12 w-12 text-teal-400 mx-auto mb-4" />
+          <p className="text-white text-lg font-bold">Interview Completed!</p>
+          <p className="text-xs text-slate-500 mt-1">Calculating final metrics...</p>
         </div>
       </div>
     );
   }
 
+  const currentIdx = session!.currentQuestionIndex;
+  const totalQs = (session as any).totalQuestions || session!.questions.length;
+  const progressionPct = ((currentIdx + 1) / totalQs) * 100;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col relative overflow-hidden">
+      {/* Background ambient glowing shapes */}
+      <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-teal-500/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
+
       {/* Header */}
-      <header className="bg-slate-800/50 backdrop-blur-lg border-b border-slate-700/50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center space-x-2 text-slate-300 hover:text-white transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span>Exit</span>
-            </button>
-            <div className="text-slate-300">
-              Question {session!.currentQuestionIndex + 1} of {(session as any).totalQuestions || session!.questions.length}
-            </div>
+      <header className="sticky top-0 z-50 bg-slate-900/60 backdrop-blur-xl border-b border-slate-900">
+        <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 flex items-center justify-between h-16">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="h-4.5 w-4.5" />
+            <span className="text-xs font-bold uppercase tracking-wider">Quit Session</span>
+          </button>
+          
+          <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-300">
+            Question {currentIdx + 1} of {totalQs}
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Focus Content */}
+      <main className="max-w-3xl mx-auto w-full px-4 py-8 flex-1 flex flex-col gap-6 relative z-10">
+        
         {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="bg-slate-700 rounded-full h-2">
-            <div
-              className="bg-gradient-to-r from-teal-500 to-cyan-500 h-2 rounded-full transition-all"
-              style={{
-                width: `${((session!.currentQuestionIndex + 1) / ((session as any).totalQuestions || session!.questions.length)) * 100}%`
-              }}
-            />
-          </div>
+        <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-900">
+          <div
+            className="bg-gradient-to-r from-teal-400 to-cyan-400 h-full rounded-full transition-all duration-300 shadow-md shadow-teal-500/20"
+            style={{ width: `${progressionPct}%` }}
+          />
         </div>
 
-        {/* Question Card */}
-        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 mb-6 backdrop-blur-sm">
-          <div className="flex items-center space-x-2 mb-4">
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+        {/* Question Panel */}
+        <div className="bg-slate-900/40 border border-slate-900 rounded-2xl p-6 relative">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase ${
               currentQuestion.type === 'technical' 
-                ? 'bg-teal-500/20 text-teal-300' 
-                : 'bg-violet-500/20 text-violet-300'
+                ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' 
+                : 'bg-violet-500/10 text-violet-400 border border-violet-500/20'
             }`}>
-              {currentQuestion.type.charAt(0).toUpperCase() + currentQuestion.type.slice(1)}
+              {currentQuestion.type} question
             </span>
+
+            <button
+              onClick={() => setShowIntention(!showIntention)}
+              className="text-xs text-slate-400 hover:text-teal-400 flex items-center gap-1.5 transition-colors font-medium"
+            >
+              <Info className="h-3.5 w-3.5" />
+              <span>{showIntention ? 'Hide Intent' : 'Check Intent'}</span>
+            </button>
           </div>
-          
-          <h2 className="text-xl font-semibold text-white mb-4">{currentQuestion.question}</h2>
-          
-          <div className="bg-slate-700/50 rounded-lg p-4 mb-4">
-            <p className="text-sm text-slate-400">
-              <span className="font-medium text-slate-300">Intention:</span> {currentQuestion.intention}
+
+          <h2 className="text-lg sm:text-xl font-extrabold text-white leading-relaxed">
+            "{currentQuestion.question}"
+          </h2>
+
+          {/* Intention helper block */}
+          {showIntention && (
+            <div className="mt-4 p-4 bg-slate-950/40 border border-slate-900 rounded-xl text-xs text-slate-400 flex items-start gap-2.5">
+              <HelpCircle className="h-4 w-4 text-teal-400 flex-shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                <strong className="text-slate-300">Intention:</strong> {currentQuestion.intention}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Evaluation Output (Appears if evaluation is present for the previous step) */}
+        {evaluation && (
+          <div className="bg-slate-900/50 border border-slate-900 rounded-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 font-bold text-base">
+                {evaluation.score}/10
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white">Latest Answer Evaluated</h4>
+                <p className="text-xs text-slate-500">AI Scoring Feedback</p>
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-300 leading-relaxed bg-slate-950/20 border border-slate-950 p-4 rounded-xl">
+              {evaluation.feedback}
             </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              {evaluation.strengths && evaluation.strengths.length > 0 && (
+                <div className="space-y-2">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                    <CheckCircle className="h-3.5 w-3.5" /> Strengths
+                  </h5>
+                  <ul className="space-y-1.5 text-xs text-slate-400">
+                    {evaluation.strengths.map((str: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-emerald-400/80 mt-0.5">•</span>
+                        <span>{str}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {evaluation.improvements && evaluation.improvements.length > 0 && (
+                <div className="space-y-2">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                    <AlertCircle className="h-3.5 w-3.5" /> Improvements
+                  </h5>
+                  <ul className="space-y-1.5 text-xs text-slate-400">
+                    {evaluation.improvements.map((imp: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-amber-400/80 mt-0.5">•</span>
+                        <span>{imp}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
+        )}
+
+        {/* Text Input Block */}
+        <div className="bg-slate-900/40 border border-slate-900 rounded-2xl p-6 flex flex-col gap-4 relative">
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Answer</span>
+            
+            {/* Audio Voice Simulation Toggle */}
+            <button
+              onClick={() => {
+                setIsMicSimulated(!isMicSimulated);
+                if(!isMicSimulated) {
+                  setAnswer("I'm formulating a structured response using the STAR method. First, let's look at the situation, define our critical milestones, and outline the technical constraints...");
+                } else {
+                  setAnswer("");
+                }
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-xs font-semibold transition-all ${
+                isMicSimulated 
+                  ? 'bg-teal-500/10 text-teal-400 border-teal-500/30' 
+                  : 'bg-slate-950/40 text-slate-400 border-slate-800 hover:border-slate-700'
+              }`}
+            >
+              {isMicSimulated ? (
+                <>
+                  <Mic className="h-3.5 w-3.5 animate-pulse" />
+                  <span>Speech Mode On</span>
+                </>
+              ) : (
+                <>
+                  <MicOff className="h-3.5 w-3.5" />
+                  <span>Microphone Placeholder</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {isMicSimulated && (
+            <div className="flex flex-col items-center justify-center py-6 bg-slate-950/50 rounded-xl border border-slate-800 text-center space-y-3 relative overflow-hidden">
+              <div className="flex items-center gap-1">
+                <span className="w-1 bg-teal-400 h-6 rounded-full animate-pulse" />
+                <span className="w-1 bg-teal-400 h-10 rounded-full animate-pulse delay-75" />
+                <span className="w-1 bg-teal-400 h-8 rounded-full animate-pulse delay-150" />
+                <span className="w-1 bg-teal-400 h-12 rounded-full animate-pulse delay-300" />
+                <span className="w-1 bg-teal-400 h-6 rounded-full animate-pulse delay-75" />
+              </div>
+              <p className="text-xs text-slate-400">
+                Speech-to-text falls back to visual transcription below.
+              </p>
+            </div>
+          )}
 
           <textarea
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
-            rows={6}
-            className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 resize-none backdrop-blur-sm transition-all"
-            placeholder="Type your answer here..."
+            rows={5}
+            className="w-full p-4 bg-slate-950/50 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/40 text-sm resize-none transition-all"
+            placeholder="Type your response... Tip: Be structured, outline steps, and provide code context if requested."
             disabled={submitting || completed}
           />
+
+          <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+            <span>{wordCount} words</span>
+            <span>{charCount} / 2500 chars</span>
+          </div>
         </div>
 
-        {/* Evaluation Feedback */}
-        {evaluation && (
-          <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 mb-6 backdrop-blur-sm">
-            <div className="flex items-center space-x-2 mb-4">
-              <span className="text-2xl font-bold bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent">{evaluation.score}/10</span>
-              <span className="text-slate-400">Score</span>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-white mb-2">Feedback</h4>
-                <p className="text-slate-300">{evaluation.feedback}</p>
-              </div>
-              
-              {evaluation.strengths && evaluation.strengths.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-emerald-400 mb-2">Strengths</h4>
-                  <ul className="list-disc list-inside text-slate-300 space-y-1">
-                    {evaluation.strengths.map((strength: string, idx: number) => (
-                      <li key={idx}>{strength}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              
-              {evaluation.improvements && evaluation.improvements.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-amber-400 mb-2">Areas for Improvement</h4>
-                  <ul className="list-disc list-inside text-slate-300 space-y-1">
-                    {evaluation.improvements.map((improvement: string, idx: number) => (
-                      <li key={idx}>{improvement}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Submit Button */}
-        {!completed && (
+        {/* CTA Buttons */}
+        {!completed ? (
           <button
             onClick={handleSubmitAnswer}
             disabled={!answer.trim() || submitting}
-            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-lg shadow-teal-500/20 text-sm font-medium text-white bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="w-full py-3 bg-gradient-to-r from-teal-400 to-cyan-400 text-slate-950 font-bold rounded-xl hover:from-teal-300 hover:to-cyan-300 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-teal-500/10 flex items-center justify-center gap-2"
           >
             {submitting ? (
               <>
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                Evaluating...
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>AI Panel Evaluating Response...</span>
               </>
             ) : (
               <>
-                <Send className="h-5 w-5 mr-2" />
-                Submit Answer
+                <Send className="h-4.5 w-4.5" />
+                <span>Submit Response</span>
               </>
             )}
           </button>
-        )}
-
-        {completed && (
-          <div className="text-center">
-            <CheckCircle className="h-12 w-12 text-emerald-400 mx-auto mb-4" />
-            <p className="text-white text-lg">Interview completed! Redirecting to results...</p>
+        ) : (
+          <div className="text-center py-4 space-y-3">
+            <CheckCircle2 className="h-10 w-10 text-teal-400 animate-bounce mx-auto" />
+            <p className="text-sm font-bold text-white">Interview session complete!</p>
+            <p className="text-xs text-slate-400">Loading final evaluation metrics report...</p>
           </div>
         )}
+
       </main>
     </div>
   );

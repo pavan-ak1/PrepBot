@@ -1,14 +1,16 @@
 import { Router } from "express";
 import { authenticateUser } from "../middleware/authMiddleware";
-import { getInterviewResults, startInterviewSession, submitAnswer } from "../controllers/sessionController";
+import { getInterviewResults, startInterviewSession, submitAnswer, getSessionByReportId } from "../controllers/sessionController";
 
 const router = Router();
 
 
-router.post("/start", authenticateUser, startInterviewSession);
+router.post("/start", startInterviewSession);
 
-router.post("/answer", authenticateUser, submitAnswer);
+router.post("/answer", submitAnswer);
 
-router.get("/:id/results", authenticateUser, getInterviewResults)
+router.get("/report/:reportId", getSessionByReportId);
+
+router.get("/:id/results", getInterviewResults)
 
 export default router;

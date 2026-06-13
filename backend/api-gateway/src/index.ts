@@ -1,20 +1,51 @@
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Load environment variables from parent folders if available
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 dotenv.config();
 
-import express, { Request } from "express";
+import express, {
+  ErrorRequestHandler,
+  NextFunction,
+  Request,
+  Response,
+} from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { SERVICES } from "./config/services.js";
+import { authenticateUser } from "./middleware/authMiddleware.js";
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === "production" ? process.env.CLIENT_URL : ["http://localhost:5173", "http://localhost:3000"],
+  credentials: true,
+}));
 app.use(helmet());
 app.use(morgan("dev"));
 
-console.log("Services:", SERVICES);
+app.get("/health", (_, res) => {
+  res.status(200).json({
+    status: "UP",
+    service: "API Gateway",
+    timestamp: new Date(),
+  });
+});
+
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error(err);
+
+  res.status(500).json({
+    success: false,
+    message: "Internal server error",
+  });
+});
 
 app.use(
   "/api/v1/auth",
@@ -30,11 +61,12 @@ app.use(
         console.log("Forwarded URL:", proxyReq.path);
       },
     },
-  })
+  }),
 );
 
 app.use(
   "/api/v1/jobprep",
+  authenticateUser,
   createProxyMiddleware({
     target: SERVICES.JOBPREP,
     changeOrigin: true,
@@ -43,15 +75,20 @@ app.use(
 
     on: {
       proxyReq: (proxyReq, req: Request) => {
+        if (req.user) {
+          proxyReq.setHeader("x-user", JSON.stringify(req.user));
+        }
+
         console.log("Incoming URL:", req.originalUrl);
         console.log("Forwarded URL:", proxyReq.path);
       },
     },
-  })
+  }),
 );
 
 app.use(
   "/api/v1/session",
+  authenticateUser,
   createProxyMiddleware({
     target: SERVICES.SESSION,
     changeOrigin: true,
@@ -60,11 +97,15 @@ app.use(
 
     on: {
       proxyReq: (proxyReq, req: Request) => {
+        if (req.user) {
+          proxyReq.setHeader("x-user", JSON.stringify(req.user));
+        }
+
         console.log("Incoming URL:", req.originalUrl);
         console.log("Forwarded URL:", proxyReq.path);
       },
     },
-  })
+  }),
 );
 
 const port = process.env.PORT || 3000;

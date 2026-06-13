@@ -14,6 +14,37 @@ export const startInterviewSession = async (req: Request, res: Response) => {
     });
   }
 
+  // Check if a session already exists for this report and user
+  const existingSession = await InterviewSessionModel.findOne({
+    userId: req.user?.id,
+    reportId,
+  });
+
+  if (existingSession) {
+    if (existingSession.status === "completed") {
+      return res.status(400).json({
+        message: "You have already completed the interview session for this report.",
+        success: false,
+      });
+    }
+
+    // If session is active, reset it to allow starting fresh (handles page refreshes gracefully)
+    existingSession.currentQuestionIndex = 0;
+    existingSession.answers = [] as any;
+    await existingSession.save();
+
+    return res.status(201).json({
+      success: true,
+      sessionId: existingSession._id,
+      totalQuestions: existingSession.questions.length,
+      firstQuestion: {
+        question: existingSession.questions[0].question,
+        type: existingSession.questions[0].type,
+        intention: existingSession.questions[0].intention,
+      },
+    });
+  }
+
   const report = await fetchInterviewReport(
     reportId,
     req.headers.authorization!,
@@ -274,3 +305,27 @@ export const getInterviewResults =
         session.finalReport,
     });
   };
+
+export const getSessionByReportId = async (req: Request, res: Response) => {
+  try {
+    const session = await InterviewSessionModel.findOne({
+      userId: req.user?.id,
+      reportId: req.params.reportId,
+    });
+
+    res.status(200).json({
+      success: true,
+      session: session
+        ? {
+            _id: session._id,
+            status: session.status,
+          }
+        : null,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch session status",
+      success: false,
+    });
+  }
+};

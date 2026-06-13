@@ -77,7 +77,7 @@ export const authenticateUser = async (
 
     next();
   } catch (err) {
-    console.error("Interview Session Service Authentication Middleware Error:", err);
+    console.error("API Gateway Authentication Middleware Error:", err);
     return res.status(401).json({
       message: "Invalid or expired token",
       success: false,

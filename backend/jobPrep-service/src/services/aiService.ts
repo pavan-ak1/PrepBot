@@ -99,36 +99,73 @@ interface input {
 }
 
 export const generateResponse = async (inp: input) => {
-  const prompt = `Generate an interview report for a candidate with the following details:
-                        Resume: ${inp.resume}
-                        Self Description: ${inp.selfDescription}
-                        Job Description: ${inp.jobDescription}`;
+  const prompt = `
+Generate an interview report for a candidate with the following details:
 
-  const response = await llm.models.generateContent({
-    model: "gemini-3.5-flash",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: zodToJsonSchema(interviewReportSchema),
-    },
-  });
+Resume:
+${inp.resume}
 
-  if (!response) {
-    throw new Error("No response generated");
-  }
+Self Description:
+${inp.selfDescription}
 
-  try {
-    const text = response.text;
+Job Description:
+${inp.jobDescription}
+`;
 
-    if (!text) {
-      throw new Error("Empty response from Gemini");
+  const maxRetries = 5;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await llm.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: zodToJsonSchema(interviewReportSchema),
+        },
+      });
+
+      const text = response.text;
+
+      if (!text) {
+        throw new Error("Empty response from Gemini");
+      }
+
+      const parsed = JSON.parse(text);
+
+      return interviewReportSchema.parse(parsed);
+    } catch (err: any) {
+      lastError = err;
+
+      // Retry only on temporary overload errors
+      const isRetryable =
+        err?.status === 503 ||
+        err?.error?.code === 503 ||
+        err?.message?.includes("503") ||
+        err?.message?.includes("UNAVAILABLE");
+
+      if (isRetryable && attempt < maxRetries - 1) {
+        const delay = Math.pow(2, attempt) * 1000;
+
+        console.log(
+          `Gemini overloaded (attempt ${attempt + 1}/${maxRetries}). Retrying in ${
+            delay / 1000
+          } seconds...`
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+
+      console.error("Gemini error:", err);
+      throw err;
     }
-
-    const parsed = JSON.parse(text);
-
-    return interviewReportSchema.parse(parsed);
-  } catch (err) {
-    console.error(err);
-    throw new Error("Failed to parse AI response");
   }
+
+  throw new Error(
+    `Failed to generate interview report after ${maxRetries} attempts.\n${
+      lastError instanceof Error ? lastError.message : "Unknown error"
+    }`
+  );
 };
