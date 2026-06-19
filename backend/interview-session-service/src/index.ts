@@ -35,10 +35,15 @@ app.use("/api/v1/session", sessionRoutes);
 
 const start = async () => {
   const PORT = process.env.PORT || 8082;
-  await connectDb();
-  app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
-  });
+  try {
+    await connectDb();
+    app.listen(PORT, () => {
+      console.log(`Server listening on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start session service:", error);
+    process.exit(1);
+  }
 };
 
 
