@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import { fetchInterviewReport } from "../services/fetchReport";
-import { InterviewSessionModel } from "../models/interviewSessionModel";
-import { evaluateInterview } from "../services/evaluateAnswers";
-import { calculateSimilarity } from "../utils/similarity";
+import { fetchInterviewReport } from "../services/fetchReport.js";
+import { InterviewSessionModel } from "../models/interviewSessionModel.js";
+import { evaluateInterview } from "../services/evaluateAnswers.js";
+import { calculateSimilarity } from "../utils/similarity.js";
 
 export const startInterviewSession = async (req: Request, res: Response) => {
   const { reportId } = req.body;

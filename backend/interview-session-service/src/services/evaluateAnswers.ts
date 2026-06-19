@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { interviewEvaluationSchema, InterviewEvaluationType } from "./interviewEvaluationSchema";
+import { interviewEvaluationSchema, InterviewEvaluationType } from "./interviewEvaluationSchema.js";
 
 
 

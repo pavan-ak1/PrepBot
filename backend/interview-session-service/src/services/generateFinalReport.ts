@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { finalReportSchema } from "./finalReportSchema";
+import { finalReportSchema } from "./finalReportSchema.js";
 
 
 

@@ -1,13 +1,13 @@
 import express from "express";
 import dotenv from "dotenv";
 import path from "path";
-import { connectDb } from "./db/db";
+import { connectDb } from "./db/db.js";
 import cors from "cors";
 
 
-import sessionRoutes from "./routes/sessionRoutes"
-import { attachUser } from "./middleware/attachUserMiddleware";
-import { requireGateway } from "./middleware/requireGateway";
+import sessionRoutes from "./routes/sessionRoutes.js"
+import { attachUser } from "./middleware/attachUserMiddleware.js";
+import { requireGateway } from "./middleware/requireGateway.js";
 
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
