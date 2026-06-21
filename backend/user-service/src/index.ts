@@ -17,11 +17,12 @@ const app = express();
 
 //router imports
 import authRouter from './routes/authRoutes.js'
-import { connectRedis } from "./config/redis.js";
+import { attachUser } from './middleware/attachUserMiddleware.js';
 
 //middlewares
 app.use(express.json());
 app.use(cookieParser());
+app.use(attachUser);
 
 app.use(cors({
     origin: process.env.NODE_ENV === 'production' ? process.env.CLIENT_URL : ['http://localhost:5173', 'http://localhost:3000'],
@@ -39,7 +40,6 @@ app.get('/', (req:Request,res:Response)=>{
 const PORT = process.env.PORT || 8080;
 
 const start = async ()=>{
-   await connectRedis();
    await connectDB();
     app.listen(PORT, ()=>{
     console.log(`Server running on port ${PORT}`);

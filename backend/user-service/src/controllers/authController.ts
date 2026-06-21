@@ -2,7 +2,6 @@ import type { Request, Response } from "express";
 import { userModel } from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import redisClient from "../config/redis.js";
 
 export const registerUser = async (req: Request, res: Response) => {
   const { username, email, password } = req.body;
@@ -117,26 +116,6 @@ export const loginUser = async (req: Request, res: Response) => {
 };
 
 export const logoutUser = async (req: Request, res: Response) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({
-      success: false,
-      message: "Token missing",
-    });
-  }
-
-  const token = authHeader.split(" ")[1];
-  if (!token) {
-    return res
-      .status(401)
-      .json({ message: "Token not provided", status: false });
-  }
-
-  await redisClient.set(token, "blacklisted", {
-    EX: 60 * 60 * 24,
-  });
-
   res.status(200).json({
     success: true,
     message: "User logged out successfully",

@@ -51,8 +51,39 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
+app.get("/api/v1/auth/logout", authenticateUser, async (req: Request, res: Response) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      if (token) {
+        const { default: redisClient } = await import("./config/redis.js");
+        await redisClient.set(token, "blacklisted", {
+          EX: 60 * 60 * 24, // 24 hours
+        });
+      }
+    }
+    res.status(200).json({
+      success: true,
+      message: "User logged out successfully",
+    });
+  } catch (error) {
+    console.error("Gateway logout error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error during logout",
+    });
+  }
+});
+
 app.use(
   "/api/v1/auth",
+  (req: Request, res: Response, next: NextFunction) => {
+    if (req.originalUrl.split("?")[0].endsWith("/getMe")) {
+      return authenticateUser(req, res, next);
+    }
+    next();
+  },
   createProxyMiddleware({
     target: SERVICES.USER,
     changeOrigin: true,
@@ -61,6 +92,9 @@ app.use(
 
     on: {
       proxyReq: (proxyReq, req: Request) => {
+        if (req.user) {
+          proxyReq.setHeader("x-user", JSON.stringify(req.user));
+        }
         console.log("Incoming URL:", req.originalUrl);
         console.log("Forwarded URL:", proxyReq.path);
       },

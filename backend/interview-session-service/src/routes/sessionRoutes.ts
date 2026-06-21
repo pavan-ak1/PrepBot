@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { authenticateUser } from "../middleware/authMiddleware.js";
 import { getInterviewResults, startInterviewSession, submitAnswer, getSessionByReportId } from "../controllers/sessionController.js";
 
 const router = Router();

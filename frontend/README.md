@@ -59,7 +59,7 @@ npm run preview
 Create a `.env` file in the root directory:
 
 ```env
-VITE_API_BASE_URL=http://localhost:8080
+VITE_API_GATEWAY_URL=http://localhost:3000
 ```
 
 ## Project Structure
@@ -88,11 +88,7 @@ src/
 
 ## API Integration
 
-The frontend communicates with the following backend services:
-
-- **User Service** (port 8080) - Authentication
-- **JobPrep Service** (port 8081) - Interview report generation
-- **Interview Session Service** (port 8082) - Interactive sessions
+The frontend communicates with all backend services through the **API Gateway** (port `3000`).
 
 ## Features Overview
 

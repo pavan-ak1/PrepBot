@@ -38,12 +38,10 @@ services:
       - "8080:8080"
     depends_on:
       - mongo
-      - redis
     environment:
       - PORT=${PORT_USER}
       - MONGO_URI=${MONGO_URI_USER}
       - JWT_SECRET=${JWT_SECRET}
-      - REDIS_URL=${REDIS_URL}
 
   jobprep-service:
     build: ./jobPrep-service
@@ -52,13 +50,10 @@ services:
       - "8081:8081"
     depends_on:
       - mongo
-      - redis
     environment:
       - PORT=${PORT_JOB}
       - MONGO_URI=${MONGO_URI_JOB_PREP}
-      - JWT_SECRET=${JWT_SECRET}
       - GEMINI_API_KEY=${GEMINI_API_KEY_JOB_PREP}
-      - REDIS_URL=${REDIS_URL}
     volumes:
       - ./jobPrep-service:/app
       - /app/node_modules
@@ -70,14 +65,11 @@ services:
       - "8082:8082"
     depends_on:
       - mongo
-      - redis
     environment:
       - PORT=${PORT_SESSION}
       - MONGO_URI=${MONGO_URI_SESSION}
-      - JWT_SECRET=${JWT_SECRET}
       - GEMINI_API_KEY=${GEMINI_API_KEY_SESSION}
       - JOBPREP_SERVICE_URL=${JOBPREP_SERVICE_URL}
-      - REDIS_URL=${REDIS_URL}
 
 volumes:
   mongo_data:
