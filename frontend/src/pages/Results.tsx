@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { sessionAPI } from '../services/api';
 import type { InterviewSession } from '../types';
+
+
 import { 
   ArrowLeft, 
   TrendingUp, 
@@ -10,7 +12,6 @@ import {
   MessageSquare, 
   CheckCircle2, 
   AlertTriangle,
-  ChevronRight,
   Sparkles,
   ArrowRight
 } from 'lucide-react';

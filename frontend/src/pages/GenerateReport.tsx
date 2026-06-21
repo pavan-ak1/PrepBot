@@ -1,3 +1,6 @@
+
+
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jobPrepAPI } from '../services/api';
@@ -11,8 +14,7 @@ import {
   Calendar, 
   FileText,
   CheckCircle2,
-  Sparkles,
-  Info
+  Sparkles
 } from 'lucide-react';
 
 export default function GenerateReport() {

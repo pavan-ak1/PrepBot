@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { sessionAPI } from '../services/api';
 import type { InterviewSession, Question } from '../types';
+
+
 import { 
   ArrowLeft, 
   Send, 
   CheckCircle2, 
   Loader2, 
   Info, 
-  Award, 
   CheckCircle, 
   AlertCircle,
   HelpCircle

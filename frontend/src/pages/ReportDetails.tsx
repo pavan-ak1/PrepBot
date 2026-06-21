@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { jobPrepAPI, sessionAPI } from '../services/api';
+
+
 import { 
   ArrowLeft, 
   Play, 
@@ -9,7 +11,6 @@ import {
   Calendar, 
   Loader2,
   CheckCircle2,
-  Sparkles,
   Award
 } from 'lucide-react';
 
