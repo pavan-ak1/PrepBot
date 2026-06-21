@@ -8,7 +8,6 @@ import {
   LogOut, 
   Plus, 
   TrendingUp, 
-  Search, 
   Sparkles, 
   Award, 
   Clock, 
@@ -20,7 +19,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+
   const user = authService.getCurrentUserFromStorage();
 
   useEffect(() => {
@@ -48,9 +47,7 @@ export default function Dashboard() {
     ? Math.round(reportsWithScore.reduce((acc, curr) => acc + curr.matchScore, 0) / reportsWithScore.length)
     : null;
 
-  const filteredReports = reports.filter(report => 
-    report.jobDescription?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
@@ -165,18 +162,6 @@ export default function Dashboard() {
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-lg font-bold text-white">Saved Job Reports</h2>
-              
-              {/* Search Bar */}
-              <div className="relative max-w-xs w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                <input
-                  type="text"
-                  placeholder="Filter by description..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-1.5 bg-slate-900/60 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition-all"
-                />
-              </div>
             </div>
 
             {loading ? (
@@ -184,7 +169,7 @@ export default function Dashboard() {
                 <div className="h-8 w-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin mb-3" />
                 <span className="text-sm text-slate-400">Loading reports...</span>
               </div>
-            ) : filteredReports.length === 0 ? (
+            ) : reports.length === 0 ? (
               <div className="text-center py-16 px-6 bg-slate-900/20 border border-slate-900 rounded-2xl border-dashed flex flex-col items-center justify-center">
                 <div className="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 text-slate-600 mb-4">
                   <FileText className="h-10 w-10 text-slate-500" />
@@ -202,7 +187,7 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="space-y-3.5">
-                {filteredReports.map((report) => {
+                {reports.map((report) => {
                   const jobSnippet = report.jobDescription?.trim().split('\n')[0] || 'Target Role';
                   const title = jobSnippet.length > 55 ? jobSnippet.substring(0, 55) + '...' : jobSnippet;
 

@@ -204,10 +204,10 @@ export const submitAnswer = async (req: Request, res: Response) => {
       overallScore: isCompleted ? session.overallScore : null,
       nextQuestion: nextQuestion
         ? {
-            question: nextQuestion.question,
-            type: nextQuestion.type,
-            intention: nextQuestion.intention,
-          }
+          question: nextQuestion.question,
+          type: nextQuestion.type,
+          intention: nextQuestion.intention,
+        }
         : null,
     });
   } catch (error: any) {
@@ -273,9 +273,9 @@ export const getSessionByReportId = async (req: Request, res: Response) => {
       success: true,
       session: session
         ? {
-            _id: session._id,
-            status: session.status,
-          }
+          _id: session._id,
+          status: session.status,
+        }
         : null,
     });
   } catch (error) {

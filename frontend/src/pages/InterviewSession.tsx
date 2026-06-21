@@ -8,8 +8,6 @@ import {
   CheckCircle2, 
   Loader2, 
   Info, 
-  Mic, 
-  MicOff, 
   Award, 
   CheckCircle, 
   AlertCircle,
@@ -28,7 +26,7 @@ export default function InterviewSession() {
   const [evaluation, setEvaluation] = useState<any>(null);
   const [completed, setCompleted] = useState(false);
   const [showIntention, setShowIntention] = useState(false);
-  const [isMicSimulated, setIsMicSimulated] = useState(false);
+
 
   useEffect(() => {
     if (reportId) {
@@ -266,51 +264,7 @@ export default function InterviewSession() {
         <div className="bg-slate-900/40 border border-slate-900 rounded-2xl p-6 flex flex-col gap-4 relative">
           <div className="flex items-center justify-between gap-4">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Answer</span>
-            
-            {/* Audio Voice Simulation Toggle */}
-            <button
-              onClick={() => {
-                setIsMicSimulated(!isMicSimulated);
-                if(!isMicSimulated) {
-                  setAnswer("I'm formulating a structured response using the STAR method. First, let's look at the situation, define our critical milestones, and outline the technical constraints...");
-                } else {
-                  setAnswer("");
-                }
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-xs font-semibold transition-all ${
-                isMicSimulated 
-                  ? 'bg-teal-500/10 text-teal-400 border-teal-500/30' 
-                  : 'bg-slate-950/40 text-slate-400 border-slate-800 hover:border-slate-700'
-              }`}
-            >
-              {isMicSimulated ? (
-                <>
-                  <Mic className="h-3.5 w-3.5 animate-pulse" />
-                  <span>Speech Mode On</span>
-                </>
-              ) : (
-                <>
-                  <MicOff className="h-3.5 w-3.5" />
-                  <span>Microphone Placeholder</span>
-                </>
-              )}
-            </button>
           </div>
-
-          {isMicSimulated && (
-            <div className="flex flex-col items-center justify-center py-6 bg-slate-950/50 rounded-xl border border-slate-800 text-center space-y-3 relative overflow-hidden">
-              <div className="flex items-center gap-1">
-                <span className="w-1 bg-teal-400 h-6 rounded-full animate-pulse" />
-                <span className="w-1 bg-teal-400 h-10 rounded-full animate-pulse delay-75" />
-                <span className="w-1 bg-teal-400 h-8 rounded-full animate-pulse delay-150" />
-                <span className="w-1 bg-teal-400 h-12 rounded-full animate-pulse delay-300" />
-                <span className="w-1 bg-teal-400 h-6 rounded-full animate-pulse delay-75" />
-              </div>
-              <p className="text-xs text-slate-400">
-                Speech-to-text falls back to visual transcription below.
-              </p>
-            </div>
-          )}
 
           <textarea
             value={answer}
