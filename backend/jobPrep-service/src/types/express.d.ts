@@ -1,3 +1,5 @@
+import 'express';
+
 interface JwtUserPayload {
   id: string;
   username: string;
