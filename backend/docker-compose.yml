@@ -30,6 +30,7 @@ services:
       - SESSION_SERVICE=http://interview-session-service:8082
       - JWT_SECRET=${JWT_SECRET}
       - REDIS_URL=${REDIS_URL}
+      - REDIS_JWT_TTL=${REDIS_JWT_TTL}
 
   user-service:
     build: ./user-service

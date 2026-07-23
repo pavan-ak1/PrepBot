@@ -58,8 +58,11 @@ app.get("/api/v1/auth/logout", authenticateUser, async (req: Request, res: Respo
       const token = authHeader.split(" ")[1];
       if (token) {
         const { default: redisClient } = await import("./config/redis.js");
+        const redisJwtTtl = process.env.REDIS_JWT_TTL
+          ? parseInt(process.env.REDIS_JWT_TTL, 10)
+          : 60 * 60 * 24 * 10; // Default to 10 days (864000 seconds)
         await redisClient.set(token, "blacklisted", {
-          EX: 60 * 60 * 24, // 24 hours
+          EX: redisJwtTtl,
         });
       }
     }

@@ -6,7 +6,7 @@ export const fetchInterviewReport = async (
 ) => {
   console.log(process.env.JOBPREP_SERVICE_URL);
   const response = await axios.get(
-    `${process.env.JOBPREP_SERVICE_URL}/reports/${reportId}`,
+    `${process.env.JOBPREP_SERVICE_URL}/api/v1/interview/reports/${reportId}`,
     {
       headers: {
         Authorization: token,
