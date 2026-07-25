@@ -12,8 +12,6 @@ import {
   AlertCircle,
   HelpCircle,
   Clock,
-  Mic,
-  MicOff,
   ChevronRight,
   Sparkles
 } from 'lucide-react';
@@ -31,9 +29,7 @@ export default function InterviewSessionPage() {
   const [completed, setCompleted] = useState(false);
   const [showIntention, setShowIntention] = useState(false);
 
-  // Voice recording mock simulation
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordTimer, setRecordTimer] = useState(0);
+
 
   // Active elapsed timer
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -54,22 +50,7 @@ export default function InterviewSessionPage() {
     return () => clearInterval(timer);
   }, [loading, completed]);
 
-  // Voice record timer simulation
-  useEffect(() => {
-    let interval: any;
-    if (isRecording) {
-      interval = setInterval(() => {
-        setRecordTimer(prev => prev + 1);
-        // Simulate typing random texts occasionally
-        if (Math.random() > 0.7) {
-          setAnswer(prev => prev + (prev ? " " : "") + "Following the standards, we implement automated unit validation structures to ensure core modules align properly.");
-        }
-      }, 1000);
-    } else {
-      setRecordTimer(0);
-    }
-    return () => clearInterval(interval);
-  }, [isRecording]);
+
 
   const startSession = async () => {
     try {
@@ -95,8 +76,7 @@ export default function InterviewSessionPage() {
 
     try {
       setSubmitting(true);
-      // Turn off recording if active
-      setIsRecording(false);
+
       const response = await sessionAPI.submitAnswer(session._id, answer);
       
       setEvaluation(response.data.evaluation);
@@ -316,32 +296,7 @@ export default function InterviewSessionPage() {
             <div className="flex items-center justify-between border-b border-slate-900 pb-3">
               <span className="text-xs font-bold text-slate-350 uppercase tracking-wider">Workspace Draft</span>
               
-              {/* Voice Recorder toggle */}
-              <div className="flex items-center space-x-2">
-                {isRecording && (
-                  <div className="flex items-center space-x-0.5 px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/25">
-                    <div className="waveform-bar h-3" />
-                    <div className="waveform-bar h-4" />
-                    <div className="waveform-bar h-2" />
-                    <span className="text-[10px] font-bold text-indigo-400 ml-1.5">
-                      Listening {formatTimer(recordTimer)}
-                    </span>
-                  </div>
-                )}
-                
-                <button
-                  type="button"
-                  onClick={() => setIsRecording(!isRecording)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border ${
-                    isRecording 
-                      ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' 
-                      : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-850'
-                  }`}
-                >
-                  {isRecording ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-                  <span>{isRecording ? 'Stop Voice' : 'Practice Speaking'}</span>
-                </button>
-              </div>
+
             </div>
 
             <textarea
