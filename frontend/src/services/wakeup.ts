@@ -21,7 +21,6 @@ let currentState: WakeupState = {
   allOnline: false,
 };
 let isTriggered = false;
-let shouldResetOnNextPoll = false;
 
 const serviceNameMap: Record<string, string> = {
   "User Service": "user",
@@ -132,7 +131,6 @@ export const wakeupService = {
 
   reset() {
     isTriggered = false;
-    shouldResetOnNextPoll = true;
     currentState = {
       services: {
         gateway: 'loading',
