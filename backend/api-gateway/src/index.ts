@@ -34,46 +34,17 @@ app.use(cors({
 app.use(helmet());
 app.use(morgan("dev"));
 
-app.get("/health", async (_, res) => {
-  const services = [
-    { id: "user", name: "User Service", url: SERVICES.USER ? `${SERVICES.USER}/api/v1/auth/health` : null },
-    { id: "jobprep", name: "JobPrep Service", url: SERVICES.JOBPREP ? `${SERVICES.JOBPREP}/api/v1/interview/health` : null },
-    { id: "session", name: "Session Service", url: SERVICES.SESSION ? `${SERVICES.SESSION}/health` : null },
-  ];
-
-  const results: Record<string, "online" | "loading"> = {
-    gateway: "online",
-  };
-
-  await Promise.all(
-    services.map(async (service) => {
-      if (!service.url) {
-        results[service.id] = "loading";
-        return;
-      }
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
-        
-        const response = await fetch(service.url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
-          results[service.id] = "online";
-        } else {
-          results[service.id] = "loading";
-        }
-      } catch (err) {
-        results[service.id] = "loading";
-      }
-    })
-  );
-
-  const allOnline = Object.values(results).every((status) => status === "online");
-
+app.get("/health", (_, res) => {
   res.status(200).json({
-    status: allOnline ? "UP" : "WARMING_UP",
-    services: results,
+    status: "UP",
+    services: {
+      gateway: "online"
+    },
+    serviceUrls: {
+      user: SERVICES.USER ? `${SERVICES.USER}/api/v1/auth/health` : null,
+      jobprep: SERVICES.JOBPREP ? `${SERVICES.JOBPREP}/api/v1/interview/health` : null,
+      session: SERVICES.SESSION ? `${SERVICES.SESSION}/health` : null,
+    },
     timestamp: new Date(),
   });
 });

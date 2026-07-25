@@ -23,50 +23,86 @@ let currentState: WakeupState = {
 let isTriggered = false;
 
 const pollHealth = async (onUpdate: () => void, state: WakeupState) => {
-  const maxRetries = 300; // 300 retries * 3 seconds = 900s (15 min) timeout limit
+  const maxRetries = 300; // 300 retries * 3 seconds = 15 min limit
   let attempts = 0;
-  const url = `${GATEWAY_URL}/health`;
+  const gatewayUrl = `${GATEWAY_URL}/health`;
+  
+  let gatewayOnline = false;
+  let serviceUrls: Record<string, string> = {};
 
   while (attempts < maxRetries) {
     if (state !== currentState) return;
     if (state.allOnline) return;
+
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s request timeout
-
-      const res = await fetch(url, {
-        method: 'GET',
-        signal: controller.signal,
-        cache: 'no-store',
-      });
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.services) {
-          Object.entries(data.services).forEach(([id, status]) => {
-            state.services[id] = status as 'online' | 'loading' | 'offline';
-          });
-          
-          state.allOnline = data.status === 'UP';
-          onUpdate();
-          
-          if (state.allOnline) return;
-        }
-      } else {
-        // Gateway responded but with error; keep/set status to loading
-        Object.keys(state.services).forEach((id) => {
-          state.services[id] = 'loading';
+      // 1. Check Gateway first if not already online
+      if (!gatewayOnline) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s request timeout
+        
+        const res = await fetch(gatewayUrl, {
+          method: 'GET',
+          signal: controller.signal,
+          cache: 'no-store',
         });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          gatewayOnline = true;
+          state.services.gateway = 'online';
+          if (data.serviceUrls) {
+            serviceUrls = data.serviceUrls;
+          }
+          onUpdate();
+        } else {
+          state.services.gateway = 'loading';
+          onUpdate();
+        }
+      }
+
+      // 2. If Gateway is online, ping downstream microservices directly from browser
+      if (gatewayOnline && Object.keys(serviceUrls).length > 0) {
+        const pingPromises = Object.entries(serviceUrls).map(async ([id, url]) => {
+          if (!url) {
+            state.services[id] = 'loading';
+            return;
+          }
+          if (state.services[id] === 'online') return;
+
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout for each service check
+            const res = await fetch(url, {
+              method: 'GET',
+              signal: controller.signal,
+              cache: 'no-store',
+            });
+            clearTimeout(timeoutId);
+
+            if (res.ok) {
+              state.services[id] = 'online';
+            } else {
+              state.services[id] = 'loading';
+            }
+          } catch (e) {
+            state.services[id] = 'loading';
+          }
+        });
+
+        await Promise.all(pingPromises);
+
+        // Check if all services are online
+        const allServicesOnline = Object.entries(state.services).every(([_, status]) => status === 'online');
+        if (allServicesOnline) {
+          state.allOnline = true;
+          onUpdate();
+          return;
+        }
         onUpdate();
       }
     } catch (e) {
-      console.log(`Failed to fetch gateway health (attempt ${attempts + 1}):`, e);
-      // Network/CORS error or timeout; Gateway itself is waking up
-      Object.keys(state.services).forEach((id) => {
-        state.services[id] = 'loading';
-      });
-      onUpdate();
+      console.log(`Failed to poll health (attempt ${attempts + 1}):`, e);
     }
 
     attempts++;
