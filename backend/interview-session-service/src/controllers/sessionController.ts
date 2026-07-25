@@ -285,3 +285,23 @@ export const getSessionByReportId = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const deleteSessionsByReportId = async (req: Request, res: Response) => {
+  try {
+    const reportId = req.params.reportId;
+    await InterviewSessionModel.deleteMany({
+      userId: req.user?.id,
+      reportId: reportId,
+    });
+    res.status(200).json({
+      success: true,
+      message: "Sessions deleted successfully",
+    });
+  } catch (error: any) {
+    console.error("Error in deleteSessionsByReportId:", error);
+    res.status(500).json({
+      message: error.message || "Failed to delete sessions",
+      success: false,
+    });
+  }
+};

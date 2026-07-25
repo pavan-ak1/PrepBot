@@ -23,6 +23,14 @@ app.use(cors({
 
 app.use(attachUser);
 
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "UP", service: "Session Service" });
+});
+
+app.get("/api/v1/session/health", (req, res) => {
+  res.status(200).json({ status: "UP", service: "Session Service" });
+});
+
 app.use(requireGateway);
 
 

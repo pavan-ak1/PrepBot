@@ -49,7 +49,13 @@ export const authenticateUser = async (
         .json({ message: "Token not provided", status: false });
     }
 
-    const isBlacklisted = await redisClient.get(token);
+    let isBlacklisted = false;
+    if (redisClient.isOpen) {
+      const blacklistedVal = await redisClient.get(token);
+      isBlacklisted = blacklistedVal === "blacklisted";
+    } else {
+      console.warn("Redis client is not open. Skipping blacklist check.");
+    }
 
     if (isBlacklisted) {
       return res.status(401).json({

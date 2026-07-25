@@ -112,6 +112,9 @@ export const jobPrepAPI = {
   
   getReport: (id: string) =>
     jobPrepApi.get(`/reports/${id}`),
+
+  deleteReport: (id: string) =>
+    jobPrepApi.delete(`/reports/${id}`),
 };
 
 export const sessionAPI = {
@@ -126,6 +129,9 @@ export const sessionAPI = {
 
   getSessionByReport: (reportId: string) =>
     sessionApi.get(`/report/${reportId}`),
+
+  deleteSessionByReport: (reportId: string) =>
+    sessionApi.delete(`/report/${reportId}`),
 };
 
 export default api;

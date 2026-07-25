@@ -81,3 +81,30 @@ export const getAllInterviewReports = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const deleteInterviewReport = async (req: Request, res: Response) => {
+  try {
+    const reportId = req.params.id;
+    const report = await interviewReportModel.findOneAndDelete({
+      _id: reportId,
+      userId: req.user?.id,
+    });
+
+    if (!report) {
+      return res.status(404).json({
+        message: "Interview report not found or unauthorized",
+        success: false,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Interview report deleted successfully",
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      message: error.message || "Failed to delete report",
+      success: false,
+    });
+  }
+};

@@ -12,4 +12,8 @@ authRouter.get("/logout",authenticateUser,logoutUser);
 
 authRouter.get('/getMe',authenticateUser,getMeUser);
 
+authRouter.get("/health", (req: Request, res: Response) => {
+  res.status(200).json({ status: "UP", service: "User Service" });
+});
+
 export default authRouter;

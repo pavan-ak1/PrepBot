@@ -34,10 +34,46 @@ app.use(cors({
 app.use(helmet());
 app.use(morgan("dev"));
 
-app.get("/health", (_, res) => {
+app.get("/health", async (_, res) => {
+  const services = [
+    { id: "user", name: "User Service", url: SERVICES.USER ? `${SERVICES.USER}/api/v1/auth/health` : null },
+    { id: "jobprep", name: "JobPrep Service", url: SERVICES.JOBPREP ? `${SERVICES.JOBPREP}/api/v1/interview/health` : null },
+    { id: "session", name: "Session Service", url: SERVICES.SESSION ? `${SERVICES.SESSION}/health` : null },
+  ];
+
+  const results: Record<string, "online" | "loading"> = {
+    gateway: "online",
+  };
+
+  await Promise.all(
+    services.map(async (service) => {
+      if (!service.url) {
+        results[service.id] = "loading";
+        return;
+      }
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
+        
+        const response = await fetch(service.url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          results[service.id] = "online";
+        } else {
+          results[service.id] = "loading";
+        }
+      } catch (err) {
+        results[service.id] = "loading";
+      }
+    })
+  );
+
+  const allOnline = Object.values(results).every((status) => status === "online");
+
   res.status(200).json({
-    status: "UP",
-    service: "API Gateway",
+    status: allOnline ? "UP" : "WARMING_UP",
+    services: results,
     timestamp: new Date(),
   });
 });
@@ -61,9 +97,13 @@ app.get("/api/v1/auth/logout", authenticateUser, async (req: Request, res: Respo
         const redisJwtTtl = process.env.REDIS_JWT_TTL
           ? parseInt(process.env.REDIS_JWT_TTL, 10)
           : 60 * 60 * 24 * 10; // Default to 10 days (864000 seconds)
-        await redisClient.set(token, "blacklisted", {
-          EX: redisJwtTtl,
-        });
+        if (redisClient.isOpen) {
+          await redisClient.set(token, "blacklisted", {
+            EX: redisJwtTtl,
+          });
+        } else {
+          console.warn("Redis client is not open. Skipping token blacklisting.");
+        }
       }
     }
     res.status(200).json({

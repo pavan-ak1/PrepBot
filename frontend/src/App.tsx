@@ -8,6 +8,8 @@ import GenerateReport from './pages/GenerateReport';
 import InterviewSession from './pages/InterviewSession';
 import Results from './pages/Results';
 import ReportDetails from './pages/ReportDetails';
+import Layout from './components/Layout';
+import SystemWakeup from './components/SystemWakeup';
 
 function App(): JSX.Element {
   const [isAuthenticated, setIsAuthenticated] = useState(authService.isAuthenticated());
@@ -31,15 +33,16 @@ function App(): JSX.Element {
 
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white">
+      <div className="min-h-screen bg-[#05070c] text-white selection:bg-indigo-500/30">
+        <SystemWakeup />
         <Routes>
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} />
           <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/dashboard" />} />
-          <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
-          <Route path="/generate-report" element={isAuthenticated ? <GenerateReport /> : <Navigate to="/login" />} />
-          <Route path="/report/:reportId" element={isAuthenticated ? <ReportDetails /> : <Navigate to="/login" />} />
+          <Route path="/dashboard" element={isAuthenticated ? <Layout><Dashboard /></Layout> : <Navigate to="/login" />} />
+          <Route path="/generate-report" element={isAuthenticated ? <Layout><GenerateReport /></Layout> : <Navigate to="/login" />} />
+          <Route path="/report/:reportId" element={isAuthenticated ? <Layout><ReportDetails /></Layout> : <Navigate to="/login" />} />
           <Route path="/session/:reportId" element={isAuthenticated ? <InterviewSession /> : <Navigate to="/login" />} />
-          <Route path="/results/:sessionId" element={isAuthenticated ? <Results /> : <Navigate to="/login" />} />
+          <Route path="/results/:sessionId" element={isAuthenticated ? <Layout><Results /></Layout> : <Navigate to="/login" />} />
           <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
         </Routes>
       </div>

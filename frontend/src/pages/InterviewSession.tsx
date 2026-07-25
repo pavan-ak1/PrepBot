@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { sessionAPI } from '../services/api';
 import type { InterviewSession, Question } from '../types';
-
-
 import { 
   ArrowLeft, 
   Send, 
@@ -12,10 +10,16 @@ import {
   Info, 
   CheckCircle, 
   AlertCircle,
-  HelpCircle
+  HelpCircle,
+  Clock,
+  Mic,
+  MicOff,
+  ChevronRight,
+  Play,
+  Sparkles
 } from 'lucide-react';
 
-export default function InterviewSession() {
+export default function InterviewSessionPage() {
   const { reportId } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
   
@@ -28,12 +32,45 @@ export default function InterviewSession() {
   const [completed, setCompleted] = useState(false);
   const [showIntention, setShowIntention] = useState(false);
 
+  // Voice recording mock simulation
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordTimer, setRecordTimer] = useState(0);
+
+  // Active elapsed timer
+  const [elapsedTime, setElapsedTime] = useState(0);
 
   useEffect(() => {
     if (reportId) {
       startSession();
     }
   }, [reportId]);
+
+  // Elapsed timer effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (!completed && !loading) {
+        setElapsedTime(prev => prev + 1);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [loading, completed]);
+
+  // Voice record timer simulation
+  useEffect(() => {
+    let interval: any;
+    if (isRecording) {
+      interval = setInterval(() => {
+        setRecordTimer(prev => prev + 1);
+        // Simulate typing random texts occasionally
+        if (Math.random() > 0.7) {
+          setAnswer(prev => prev + (prev ? " " : "") + "Following the standards, we implement automated unit validation structures to ensure core modules align properly.");
+        }
+      }, 1000);
+    } else {
+      setRecordTimer(0);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording]);
 
   const startSession = async () => {
     try {
@@ -59,17 +96,19 @@ export default function InterviewSession() {
 
     try {
       setSubmitting(true);
+      // Turn off recording if active
+      setIsRecording(false);
       const response = await sessionAPI.submitAnswer(session._id, answer);
       
       setEvaluation(response.data.evaluation);
       setAnswer('');
-      setShowIntention(false); // Reset intention help toggle
+      setShowIntention(false);
       
       if (response.data.completed) {
         setCompleted(true);
         setTimeout(() => {
           navigate(`/results/${session._id}`);
-        }, 2500);
+        }, 3000);
       } else {
         if (response.data.nextQuestion) {
           setSession((prev: any) => {
@@ -90,6 +129,11 @@ export default function InterviewSession() {
     }
   };
 
+  // Close evaluation and move to next question state
+  const handleProceed = () => {
+    setEvaluation(null);
+  };
+
   const getCurrentQuestion = (): Question | null => {
     if (!session || !session.questions) return null;
     if (session.currentQuestionIndex < session.questions.length) {
@@ -98,16 +142,22 @@ export default function InterviewSession() {
     return null;
   };
 
+  const formatTimer = (secs: number) => {
+    const mins = Math.floor(secs / 60);
+    const remainingSecs = secs % 60;
+    return `${mins.toString().padStart(2, '0')}:${remainingSecs.toString().padStart(2, '0')}`;
+  };
+
   const currentQuestion = getCurrentQuestion();
   const wordCount = answer.trim() ? answer.trim().split(/\s+/).length : 0;
   const charCount = answer.length;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-10 w-10 text-teal-400 animate-spin mx-auto mb-4" />
-          <p className="text-sm text-slate-400">Spinning up AI interview panel...</p>
+      <div className="min-h-screen bg-[#05070c] flex items-center justify-center bg-grid-pattern relative">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-10 w-10 text-indigo-500 animate-spin mx-auto" />
+          <p className="text-sm text-slate-400">Spinning up AI interview workspace...</p>
         </div>
       </div>
     );
@@ -115,8 +165,8 @@ export default function InterviewSession() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
-        <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm px-6 py-4 rounded-xl max-w-md backdrop-blur-sm">
+      <div className="min-h-screen bg-[#05070c] flex items-center justify-center px-4 bg-grid-pattern relative">
+        <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs px-6 py-4 rounded-2xl max-w-md backdrop-blur-sm">
           {error}
         </div>
       </div>
@@ -125,11 +175,11 @@ export default function InterviewSession() {
 
   if (!currentQuestion) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
-        <div className="text-center">
-          <CheckCircle2 className="h-12 w-12 text-teal-400 mx-auto mb-4" />
+      <div className="min-h-screen bg-[#05070c] flex items-center justify-center px-4 bg-grid-pattern relative">
+        <div className="text-center space-y-4">
+          <CheckCircle2 className="h-12 w-12 text-emerald-400 mx-auto animate-bounce" />
           <p className="text-white text-lg font-bold">Interview Completed!</p>
-          <p className="text-xs text-slate-500 mt-1">Calculating final metrics...</p>
+          <p className="text-xs text-slate-500">Calculating final capability scorecard...</p>
         </div>
       </div>
     );
@@ -140,176 +190,266 @@ export default function InterviewSession() {
   const progressionPct = ((currentIdx + 1) / totalQs) * 100;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col relative overflow-hidden">
-      {/* Background ambient glowing shapes */}
-      <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-teal-500/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
-
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-slate-900/60 backdrop-blur-xl border-b border-slate-900">
-        <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 flex items-center justify-between h-16">
+    <div className="min-h-screen bg-[#05070c] text-slate-100 flex flex-col overflow-hidden bg-grid-pattern relative">
+      
+      {/* Distraction-Free Header */}
+      <header className="sticky top-0 z-40 bg-[#080a10]/85 backdrop-blur-xl border-b border-slate-900 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <button
             onClick={() => navigate('/dashboard')}
             className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="h-4.5 w-4.5" />
-            <span className="text-xs font-bold uppercase tracking-wider">Quit Session</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Quit Workspace</span>
           </button>
           
-          <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-300">
-            Question {currentIdx + 1} of {totalQs}
+          <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#0b0e15] border border-slate-850 text-slate-350">
+            Interview Question {currentIdx + 1} of {totalQs}
+          </div>
+
+          <div className="flex items-center space-x-2 text-xs font-bold text-slate-400 bg-[#0b0e15] border border-slate-850 px-3 py-1 rounded-full">
+            <Clock className="h-3.5 w-3.5 text-indigo-400" />
+            <span>{formatTimer(elapsedTime)}</span>
           </div>
         </div>
       </header>
 
-      {/* Main Focus Content */}
-      <main className="max-w-3xl mx-auto w-full px-4 py-8 flex-1 flex flex-col gap-6 relative z-10">
+      {/* Main Split Panels */}
+      <div className="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch overflow-y-auto">
         
-        {/* Progress Bar */}
-        <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-900">
-          <div
-            className="bg-gradient-to-r from-teal-400 to-cyan-400 h-full rounded-full transition-all duration-300 shadow-md shadow-teal-500/20"
-            style={{ width: `${progressionPct}%` }}
-          />
-        </div>
-
-        {/* Question Panel */}
-        <div className="bg-slate-900/40 border border-slate-900 rounded-2xl p-6 relative">
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase ${
-              currentQuestion.type === 'technical' 
-                ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' 
-                : 'bg-violet-500/10 text-violet-400 border border-violet-500/20'
-            }`}>
-              {currentQuestion.type} question
-            </span>
-
-            <button
-              onClick={() => setShowIntention(!showIntention)}
-              className="text-xs text-slate-400 hover:text-teal-400 flex items-center gap-1.5 transition-colors font-medium"
-            >
-              <Info className="h-3.5 w-3.5" />
-              <span>{showIntention ? 'Hide Intent' : 'Check Intent'}</span>
-            </button>
+        {/* Left Side: Question Context Pane (4 cols) */}
+        <div className="lg:col-span-5 flex flex-col space-y-5">
+          
+          {/* Progress Tracker list */}
+          <div className="custom-glass rounded-2xl p-5 space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-450">Assessment Progress</h3>
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: totalQs }).map((_, idx) => {
+                const isActive = idx === currentIdx;
+                const isPassed = idx < currentIdx;
+                return (
+                  <div 
+                    key={idx} 
+                    className={`h-1.5 rounded-full flex-grow transition-all duration-300 ${
+                      isPassed ? 'bg-emerald-500' :
+                      isActive ? 'bg-indigo-650 animate-pulse' :
+                      'bg-slate-850 border border-slate-800'
+                    }`}
+                  />
+                );
+              })}
+            </div>
+            
+            {/* Steps Timeline view */}
+            <div className="space-y-3 pt-2">
+              {Array.from({ length: totalQs }).map((_, idx) => {
+                const isActive = idx === currentIdx;
+                const isPassed = idx < currentIdx;
+                return (
+                  <div key={idx} className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                      isPassed ? 'bg-emerald-500/20 text-emerald-450 border border-emerald-500/30' :
+                      isActive ? 'bg-indigo-500 text-white animate-pulse' :
+                      'bg-slate-900 text-slate-600 border border-slate-850'
+                    }`}>
+                      {isPassed ? '✓' : idx + 1}
+                    </div>
+                    <span className={`text-xs font-semibold ${
+                      isActive ? 'text-indigo-400 font-bold' : 'text-slate-500'
+                    }`}>
+                      Question {idx + 1} {isActive ? '(Active)' : isPassed ? '(Answered)' : ''}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <h2 className="text-lg sm:text-xl font-extrabold text-white leading-relaxed">
-            "{currentQuestion.question}"
-          </h2>
+          {/* Question Display Card */}
+          <div className="custom-glass rounded-3xl p-6 space-y-4 relative flex-grow flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className={`px-2.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${
+                  currentQuestion.type === 'technical' 
+                    ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/25' 
+                    : 'bg-violet-500/10 text-violet-400 border border-violet-500/25'
+                }`}>
+                  {currentQuestion.type} question
+                </span>
 
-          {/* Intention helper block */}
-          {showIntention && (
-            <div className="mt-4 p-4 bg-slate-950/40 border border-slate-900 rounded-xl text-xs text-slate-400 flex items-start gap-2.5">
-              <HelpCircle className="h-4 w-4 text-teal-400 flex-shrink-0 mt-0.5" />
-              <p className="leading-relaxed">
-                <strong className="text-slate-300">Intention:</strong> {currentQuestion.intention}
-              </p>
+                <button
+                  onClick={() => setShowIntention(!showIntention)}
+                  className="text-[10px] text-slate-500 hover:text-indigo-400 flex items-center gap-1 transition-colors font-bold uppercase tracking-wider"
+                >
+                  <Info className="h-3 w-3" />
+                  <span>{showIntention ? 'Hide Specs' : 'Read Intent'}</span>
+                </button>
+              </div>
+
+              <h2 className="text-lg font-bold text-white leading-relaxed font-sans">
+                "{currentQuestion.question}"
+              </h2>
+
+              {showIntention && (
+                <div className="p-4 bg-slate-950/45 border border-slate-900 rounded-xl text-xs text-slate-400 flex items-start gap-2.5 animate-fadeIn">
+                  <HelpCircle className="h-4 w-4 text-indigo-400 flex-shrink-0 mt-0.5" />
+                  <p className="leading-relaxed">
+                    <strong className="text-slate-200">Intent:</strong> {currentQuestion.intention}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* AI Coach Hint Panel */}
+            <div className="mt-8 pt-4 border-t border-slate-900/60 text-[10px] text-slate-500 leading-relaxed flex items-start gap-2 bg-[#090b12]/30 p-3.5 rounded-xl border border-slate-900">
+              <Sparkles className="h-4 w-4 text-indigo-400 flex-shrink-0" />
+              <span>
+                <strong>Coach hint:</strong> Answer using structural methodologies. Address technical limitations, outline stack capabilities, and mention performance trade-offs.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side: Answer Input & Workspace (7 cols) */}
+        <div className="lg:col-span-7 flex flex-col space-y-6">
+          
+          {/* Main workspace Textarea */}
+          <div className="custom-glass rounded-3xl p-6 flex flex-col flex-1 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-900 pb-3">
+              <span className="text-xs font-bold text-slate-350 uppercase tracking-wider">Workspace Draft</span>
+              
+              {/* Voice Recorder toggle */}
+              <div className="flex items-center space-x-2">
+                {isRecording && (
+                  <div className="flex items-center space-x-0.5 px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/25">
+                    <div className="waveform-bar h-3" />
+                    <div className="waveform-bar h-4" />
+                    <div className="waveform-bar h-2" />
+                    <span className="text-[10px] font-bold text-indigo-400 ml-1.5">
+                      Listening {formatTimer(recordTimer)}
+                    </span>
+                  </div>
+                )}
+                
+                <button
+                  type="button"
+                  onClick={() => setIsRecording(!isRecording)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border ${
+                    isRecording 
+                      ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' 
+                      : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-850'
+                  }`}
+                >
+                  {isRecording ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                  <span>{isRecording ? 'Stop Voice' : 'Practice Speaking'}</span>
+                </button>
+              </div>
+            </div>
+
+            <textarea
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              rows={8}
+              className="w-full flex-grow p-4 bg-slate-950/40 border border-slate-900 hover:border-slate-850 focus:border-indigo-500/50 rounded-2xl text-white placeholder-slate-650 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 text-sm font-mono resize-none transition-all leading-relaxed"
+              placeholder="Draft your solution here. Focus on structural articulation and depth. Use markdown bullets or code syntax if required."
+              disabled={submitting || completed}
+            />
+
+            <div className="flex items-center justify-between text-[11px] text-slate-505">
+              <span>{wordCount} Words written</span>
+              <span className={charCount > 2000 ? 'text-amber-500' : ''}>
+                {charCount} / 2500 Characters
+              </span>
+            </div>
+          </div>
+
+          {/* Action trigger button */}
+          {!evaluation ? (
+            <button
+              onClick={handleSubmitAnswer}
+              disabled={!answer.trim() || submitting}
+              className="w-full py-3.5 rounded-xl bg-white text-slate-950 font-extrabold hover:bg-slate-100 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl flex items-center justify-center gap-2"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                  <span>AI Panel Reviewing Response...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="h-4.5 w-4.5" />
+                  <span>Commit Response</span>
+                </>
+              )}
+            </button>
+          ) : (
+            /* Next Question Proceed Control */
+            <button
+              onClick={handleProceed}
+              className="w-full py-3.5 rounded-xl bg-indigo-650 text-white font-extrabold hover:bg-indigo-600 active:scale-98 transition-all shadow-xl flex items-center justify-center gap-2"
+            >
+              <span>Proceed to Next Phase</span>
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Evaluation overlay panel (Appears if evaluation is present for current question) */}
+          {evaluation && (
+            <div className="custom-glass rounded-3xl p-6 space-y-5 animate-slideUp">
+              <div className="flex items-center gap-3 border-b border-slate-900 pb-3">
+                <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 font-extrabold text-sm shadow-sm">
+                  {evaluation.score}/10
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">AI Evaluation Scorecard</h4>
+                  <p className="text-[10px] text-slate-500">Real-time modular capabilities report</p>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <h5 className="text-xs font-bold text-slate-350 uppercase tracking-wider">Modular Feedback</h5>
+                <p className="text-xs text-slate-400 leading-relaxed bg-[#0b0e15]/50 p-3 rounded-xl border border-slate-900/60">
+                  {evaluation.feedback}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {evaluation.strengths && evaluation.strengths.length > 0 && (
+                  <div className="space-y-2">
+                    <h5 className="text-[10px] font-bold uppercase tracking-wider text-emerald-450 flex items-center gap-1">
+                      <CheckCircle className="h-3.5 w-3.5" /> Core Strengths
+                    </h5>
+                    <ul className="space-y-1.5 text-xs text-slate-450">
+                      {evaluation.strengths.map((str: string, i: number) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-emerald-400/80 mt-0.5">•</span>
+                          <span>{str}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {evaluation.improvements && evaluation.improvements.length > 0 && (
+                  <div className="space-y-2">
+                    <h5 className="text-[10px] font-bold uppercase tracking-wider text-amber-450 flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" /> Capabilities Gaps
+                    </h5>
+                    <ul className="space-y-1.5 text-xs text-slate-450">
+                      {evaluation.improvements.map((imp: string, i: number) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-amber-400/80 mt-0.5">•</span>
+                          <span>{imp}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
-
-        {/* Evaluation Output (Appears if evaluation is present for the previous step) */}
-        {evaluation && (
-          <div className="bg-slate-900/50 border border-slate-900 rounded-2xl p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 font-bold text-base">
-                {evaluation.score}/10
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-white">Latest Answer Evaluated</h4>
-                <p className="text-xs text-slate-500">AI Scoring Feedback</p>
-              </div>
-            </div>
-
-            <p className="text-sm text-slate-300 leading-relaxed bg-slate-950/20 border border-slate-950 p-4 rounded-xl">
-              {evaluation.feedback}
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-              {evaluation.strengths && evaluation.strengths.length > 0 && (
-                <div className="space-y-2">
-                  <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                    <CheckCircle className="h-3.5 w-3.5" /> Strengths
-                  </h5>
-                  <ul className="space-y-1.5 text-xs text-slate-400">
-                    {evaluation.strengths.map((str: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-emerald-400/80 mt-0.5">•</span>
-                        <span>{str}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {evaluation.improvements && evaluation.improvements.length > 0 && (
-                <div className="space-y-2">
-                  <h5 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                    <AlertCircle className="h-3.5 w-3.5" /> Improvements
-                  </h5>
-                  <ul className="space-y-1.5 text-xs text-slate-400">
-                    {evaluation.improvements.map((imp: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-amber-400/80 mt-0.5">•</span>
-                        <span>{imp}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Text Input Block */}
-        <div className="bg-slate-900/40 border border-slate-900 rounded-2xl p-6 flex flex-col gap-4 relative">
-          <div className="flex items-center justify-between gap-4">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Answer</span>
-          </div>
-
-          <textarea
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            rows={5}
-            className="w-full p-4 bg-slate-950/50 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/40 text-sm resize-none transition-all"
-            placeholder="Type your response... Tip: Be structured, outline steps, and provide code context if requested."
-            disabled={submitting || completed}
-          />
-
-          <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
-            <span>{wordCount} words</span>
-            <span>{charCount} / 2500 chars</span>
-          </div>
-        </div>
-
-        {/* CTA Buttons */}
-        {!completed ? (
-          <button
-            onClick={handleSubmitAnswer}
-            disabled={!answer.trim() || submitting}
-            className="w-full py-3 bg-gradient-to-r from-teal-400 to-cyan-400 text-slate-950 font-bold rounded-xl hover:from-teal-300 hover:to-cyan-300 active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-teal-500/10 flex items-center justify-center gap-2"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>AI Panel Evaluating Response...</span>
-              </>
-            ) : (
-              <>
-                <Send className="h-4.5 w-4.5" />
-                <span>Submit Response</span>
-              </>
-            )}
-          </button>
-        ) : (
-          <div className="text-center py-4 space-y-3">
-            <CheckCircle2 className="h-10 w-10 text-teal-400 animate-bounce mx-auto" />
-            <p className="text-sm font-bold text-white">Interview session complete!</p>
-            <p className="text-xs text-slate-400">Loading final evaluation metrics report...</p>
-          </div>
-        )}
-
-      </main>
+      </div>
     </div>
   );
 }
