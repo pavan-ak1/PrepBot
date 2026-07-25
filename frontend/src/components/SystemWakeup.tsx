@@ -96,7 +96,7 @@ export default function SystemWakeup({ onReady }: SystemWakeupProps) {
         <p className="text-slate-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
           {state.allOnline 
             ? 'All systems connected! Starting application...' 
-            : 'Starting cloud backend instances (Render free tier). This can take 40-50 seconds.'}
+            : 'Starting cloud backend instances (Render free tier). This may take a few minutes if they are sleeping.'}
         </p>
 
         {/* Progress Bar */}

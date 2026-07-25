@@ -23,7 +23,7 @@ let currentState: WakeupState = {
 let isTriggered = false;
 
 const pollHealth = async (onUpdate: () => void, state: WakeupState) => {
-  const maxRetries = 20; // 20 retries * 3 seconds = 60s timeout limit
+  const maxRetries = 300; // 300 retries * 3 seconds = 900s (15 min) timeout limit
   let attempts = 0;
   const url = `${GATEWAY_URL}/health`;
 
