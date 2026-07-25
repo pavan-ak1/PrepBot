@@ -14,7 +14,6 @@ dotenv.config();
 
 const app = express();
 
-
 //router imports
 import authRouter from './routes/authRoutes.js'
 import { attachUser } from './middleware/attachUserMiddleware.js';

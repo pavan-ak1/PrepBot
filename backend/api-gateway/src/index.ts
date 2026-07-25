@@ -34,16 +34,54 @@ app.use(cors({
 app.use(helmet());
 app.use(morgan("dev"));
 
-app.get("/health", (_, res) => {
+const serviceStatus: Record<string, "online" | "loading"> = {
+  user: "loading",
+  jobprep: "loading",
+  session: "loading",
+};
+
+const activeChecks = new Set<string>();
+
+const checkServiceBackground = async (id: string, url: string) => {
+  if (serviceStatus[id] === "online" || activeChecks.has(id)) return;
+  
+  activeChecks.add(id);
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout to allow cold start
+    
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
+    if (response.ok) {
+      serviceStatus[id] = "online";
+    }
+  } catch (err) {
+    // Retain loading status on failure
+  } finally {
+    activeChecks.delete(id);
+  }
+};
+
+app.get("/health", (req, res) => {
+  if (req.query.reset === "true") {
+    serviceStatus.user = "loading";
+    serviceStatus.jobprep = "loading";
+    serviceStatus.session = "loading";
+    activeChecks.clear();
+  }
+
+  if (SERVICES.USER) checkServiceBackground("user", `${SERVICES.USER}/api/v1/auth/health`);
+  if (SERVICES.JOBPREP) checkServiceBackground("jobprep", `${SERVICES.JOBPREP}/api/v1/interview/health`);
+  if (SERVICES.SESSION) checkServiceBackground("session", `${SERVICES.SESSION}/health`);
+
+  const allOnline = Object.values(serviceStatus).every((status) => status === "online");
+
   res.status(200).json({
-    status: "UP",
+    status: allOnline ? "UP" : "WARMING_UP",
     services: {
-      gateway: "online"
-    },
-    serviceUrls: {
-      user: SERVICES.USER ? `${SERVICES.USER}/api/v1/auth/health` : null,
-      jobprep: SERVICES.JOBPREP ? `${SERVICES.JOBPREP}/api/v1/interview/health` : null,
-      session: SERVICES.SESSION ? `${SERVICES.SESSION}/health` : null,
+      gateway: "online",
+      ...serviceStatus
     },
     timestamp: new Date(),
   });
