@@ -42,7 +42,7 @@ app.get("/", (req, res) => {
 app.use("/api/v1/session", sessionRoutes);
 
 const start = async () => {
-  const PORT = process.env.PORT || 8082;
+  const PORT = process.env.PORT || process.env.PORT_SESSION || 8082;
   try {
     await connectDb();
     app.listen(PORT, () => {

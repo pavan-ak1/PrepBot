@@ -13,6 +13,7 @@ import SystemWakeup from './components/SystemWakeup';
 
 function App(): JSX.Element {
   const [isAuthenticated, setIsAuthenticated] = useState(authService.isAuthenticated());
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -31,10 +32,13 @@ function App(): JSX.Element {
     };
   }, []);
 
+  if (!isReady) {
+    return <SystemWakeup onReady={() => setIsReady(true)} />;
+  }
+
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="min-h-screen bg-[#05070c] text-white selection:bg-indigo-500/30">
-        <SystemWakeup />
         <Routes>
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} />
           <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/dashboard" />} />

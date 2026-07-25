@@ -1,4 +1,7 @@
-const GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:3000';
+const GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL || 
+  (typeof window !== 'undefined' && window.location.hostname.includes('localhost')
+    ? 'http://localhost:3000'
+    : 'https://prepbot-api-gateway.onrender.com');
 
 export interface WakeupState {
   services: Record<string, 'loading' | 'online' | 'offline'>;
@@ -25,6 +28,7 @@ const pollHealth = async (onUpdate: () => void, state: WakeupState) => {
   const url = `${GATEWAY_URL}/health`;
 
   while (attempts < maxRetries) {
+    if (state !== currentState) return;
     if (state.allOnline) return;
     try {
       const controller = new AbortController();
@@ -101,5 +105,19 @@ export const wakeupService = {
     };
 
     pollHealth(notify, currentState);
+  },
+
+  reset() {
+    isTriggered = false;
+    currentState = {
+      services: {
+        gateway: 'loading',
+        user: 'loading',
+        jobprep: 'loading',
+        session: 'loading',
+      },
+      allOnline: false,
+    };
+    listeners.forEach((l) => l(currentState));
   },
 };

@@ -1,6 +1,9 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
-const GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:3000';
+const GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL || 
+  (typeof window !== 'undefined' && window.location.hostname.includes('localhost')
+    ? 'http://localhost:3000'
+    : 'https://prepbot-api-gateway.onrender.com');
 
 const api = axios.create({
   baseURL: GATEWAY_URL,

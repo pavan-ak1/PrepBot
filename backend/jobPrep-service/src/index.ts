@@ -35,7 +35,7 @@ app.get('/', (req:Request,res:Response)=>{
 
 
 
-const PORT = process.env.PORT || 8081;
+const PORT = process.env.PORT || process.env.PORT_JOB || 8081;
 
 
 const start = async ()=>{

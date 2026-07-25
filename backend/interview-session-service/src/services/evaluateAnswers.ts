@@ -5,7 +5,7 @@ import { interviewEvaluationSchema, InterviewEvaluationType } from "./interviewE
 
 
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
+  apiKey: (process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY_SESSION)!,
 });
 
 interface InterviewAnswer {

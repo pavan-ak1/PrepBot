@@ -37,7 +37,7 @@ app.get('/', (req:Request,res:Response)=>{
     res.send('Server up and running');
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || process.env.PORT_USER || 8080;
 
 const start = async ()=>{
    await connectDB();

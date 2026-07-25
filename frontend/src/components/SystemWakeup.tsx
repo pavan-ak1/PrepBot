@@ -3,17 +3,19 @@ import {
   Loader2, 
   CheckCircle2, 
   XCircle, 
-  ChevronDown, 
-  ChevronUp,
-  Wifi
+  AlertCircle,
+  RefreshCw,
+  Wifi,
+  Server
 } from 'lucide-react';
 import { wakeupService, type WakeupState } from '../services/wakeup';
 
-export default function SystemWakeup() {
+interface SystemWakeupProps {
+  onReady: () => void;
+}
+
+export default function SystemWakeup({ onReady }: SystemWakeupProps) {
   const [state, setState] = useState<WakeupState>(wakeupService.getState());
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [shouldRender, setShouldRender] = useState(false);
-  const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
     // Start waking up the services
@@ -22,12 +24,6 @@ export default function SystemWakeup() {
     // Subscribe to state updates
     const unsubscribe = wakeupService.subscribe((newState) => {
       setState({ ...newState });
-
-      // If any service is still loading or offline, show the indicator
-      if (!newState.allOnline) {
-        setShouldRender(true);
-        setFadeOut(false);
-      }
     });
 
     return () => {
@@ -35,25 +31,23 @@ export default function SystemWakeup() {
     };
   }, []);
 
-  // Handle auto-fadeout when all services are online
+  // Handle auto-unlock when all services are online
   useEffect(() => {
-    if (state.allOnline && shouldRender) {
-      const fadeTimeout = setTimeout(() => {
-        setFadeOut(true);
-      }, 3000); // Show "All systems connected" for 3 seconds
-
-      const removeTimeout = setTimeout(() => {
-        setShouldRender(false);
-      }, 3500); // Completely unmount after transition
+    if (state.allOnline) {
+      const readyTimeout = setTimeout(() => {
+        onReady();
+      }, 1500); // 1.5s delay to show completed animation status
 
       return () => {
-        clearTimeout(fadeTimeout);
-        clearTimeout(removeTimeout);
+        clearTimeout(readyTimeout);
       };
     }
-  }, [state.allOnline, shouldRender]);
+  }, [state.allOnline, onReady]);
 
-  if (!shouldRender) return null;
+  const handleRetry = () => {
+    wakeupService.reset();
+    wakeupService.startWakeup();
+  };
 
   const serviceNames: Record<string, string> = {
     gateway: 'API Gateway',
@@ -62,93 +56,115 @@ export default function SystemWakeup() {
     session: 'Interview Session Service'
   };
 
+  const totalServices = Object.keys(state.services).length;
+  const onlineServices = Object.values(state.services).filter((s) => s === 'online').length;
+  const progressPercent = totalServices > 0 ? (onlineServices / totalServices) * 100 : 0;
+  const hasOffline = Object.values(state.services).includes('offline');
+
   return (
-    <div 
-      className={`fixed bottom-6 right-6 z-[9999] max-w-sm w-full transition-all duration-500 ease-in-out transform ${
-        fadeOut ? 'opacity-0 translate-y-2 scale-95' : 'opacity-100 translate-y-0 scale-100'
-      }`}
-    >
-      <div className="bg-slate-950/80 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-4 shadow-2xl relative overflow-hidden">
-        {/* Glow decoration */}
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-br from-[#060814] via-[#0b0f19] to-[#04060d] text-white p-4">
+      {/* Glow decorations */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -z-10 pointer-events-none animate-pulse" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl -z-10 pointer-events-none animate-pulse" />
+
+      <div className="w-full max-w-md bg-slate-900/40 backdrop-blur-2xl border border-slate-800/80 rounded-3xl p-8 shadow-2xl relative overflow-hidden text-center">
+        {/* Glow effect on the container border */}
         <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl opacity-15 pointer-events-none transition-colors duration-500 ${
           state.allOnline ? 'bg-emerald-500' : 'bg-indigo-500'
         }`} />
 
-        {/* Header/Capsule Summary */}
-        <div 
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center justify-between cursor-pointer select-none"
-        >
-          <div className="flex items-center space-x-3">
-            <div className={`p-2 rounded-xl border transition-all duration-300 ${
-              state.allOnline 
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
-            }`}>
-              {state.allOnline ? (
-                <Wifi className="h-5 w-5 animate-pulse" />
-              ) : (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              )}
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-slate-100">
-                {state.allOnline ? 'All Systems Connected' : 'Connecting to Cloud...'}
-              </h4>
-              <p className="text-[11px] text-slate-400 font-medium">
-                {state.allOnline 
-                  ? 'All services are operational' 
-                  : 'Starting backend instances (Render free tier)'}
-              </p>
-            </div>
+        {/* Center Animated Logo / Icon */}
+        <div className="relative inline-flex mb-6">
+          <div className={`p-4 rounded-2xl border bg-slate-950/60 transition-all duration-500 ${
+            state.allOnline 
+              ? 'border-emerald-500/30 text-emerald-400 shadow-lg shadow-emerald-500/10' 
+              : 'border-indigo-500/30 text-indigo-400'
+          }`}>
+            {state.allOnline ? (
+              <Wifi className="h-10 w-10 animate-bounce" />
+            ) : (
+              <Server className="h-10 w-10 animate-pulse" />
+            )}
           </div>
-          <button className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors">
-            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
+          <span className="absolute -inset-1 rounded-2xl border border-dashed border-indigo-500/20 animate-[spin_12s_linear_infinite] pointer-events-none" />
         </div>
 
-        {/* Detailed Services list (Collapsible) */}
-        <div className={`transition-all duration-300 overflow-hidden ${
-          isExpanded ? 'max-h-60 mt-4 border-t border-slate-900 pt-4 opacity-100' : 'max-h-0 opacity-0'
-        }`}>
-          <div className="space-y-3">
-            {Object.entries(state.services).map(([id, status]) => (
-              <div key={id} className="flex items-center justify-between text-xs">
-                <span className="text-slate-300 font-semibold">{serviceNames[id] || id}</span>
-                <div className="flex items-center space-x-2">
-                  {status === 'loading' && (
-                    <>
-                      <span className="text-amber-400 font-medium">Waking up...</span>
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                      </span>
-                    </>
-                  )}
-                  {status === 'online' && (
-                    <>
-                      <span className="text-emerald-400 font-medium">Online</span>
-                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                    </>
-                  )}
-                  {status === 'offline' && (
-                    <>
-                      <span className="text-rose-400 font-medium">Offline</span>
-                      <XCircle className="h-4 w-4 text-rose-400" />
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
+        {/* Title & Subtitle */}
+        <h2 className="text-2xl font-bold tracking-tight text-slate-100">
+          PrepBot System Warmup
+        </h2>
+        <p className="text-slate-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
+          {state.allOnline 
+            ? 'All systems connected! Starting application...' 
+            : 'Starting cloud backend instances (Render free tier). This can take 40-50 seconds.'}
+        </p>
+
+        {/* Progress Bar */}
+        <div className="mt-8 mb-6 text-left max-w-sm mx-auto">
+          <div className="flex justify-between text-xs text-slate-400 font-semibold mb-2">
+            <span>Connection Progress</span>
+            <span>{Math.round(progressPercent)}%</span>
           </div>
-          
-          {!state.allOnline && (
-            <p className="text-[10px] text-slate-500 mt-4 leading-relaxed bg-slate-900/40 p-2.5 rounded-lg border border-slate-900/60">
-              💡 Render free instances spin down when inactive. Cold starts can take 40-50 seconds. Thanks for your patience!
-            </p>
-          )}
+          <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-900">
+            <div 
+              className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all duration-500 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
         </div>
+
+        {/* Detailed Services Status */}
+        <div className="space-y-3 text-left bg-slate-950/40 p-4 rounded-2xl border border-slate-900/60 max-w-sm mx-auto">
+          {Object.entries(state.services).map(([id, status]) => (
+            <div key={id} className="flex items-center justify-between py-1.5 border-b border-slate-900/40 last:border-0">
+              <span className="text-xs text-slate-300 font-semibold">{serviceNames[id] || id}</span>
+              <div className="flex items-center space-x-2">
+                {status === 'loading' && (
+                  <>
+                    <span className="text-[11px] text-amber-400 font-medium">Waking up...</span>
+                    <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />
+                  </>
+                )}
+                {status === 'online' && (
+                  <>
+                    <span className="text-[11px] text-emerald-400 font-medium">Online</span>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  </>
+                )}
+                {status === 'offline' && (
+                  <>
+                    <span className="text-[11px] text-rose-400 font-medium">Offline</span>
+                    <XCircle className="h-3.5 w-3.5 text-rose-400" />
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Offline Warning & Retry Action */}
+        {hasOffline && (
+          <div className="mt-6 animate-fade-in">
+            <div className="bg-rose-500/10 border border-rose-500/20 text-rose-200 text-xs rounded-xl p-3.5 mb-4 text-left max-w-sm mx-auto flex items-start space-x-2">
+              <AlertCircle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
+              <div>
+                <h5 className="font-semibold text-rose-300">Connection Timeout</h5>
+                <p className="mt-0.5 leading-relaxed text-rose-400/80">
+                  One or more services did not wake up in time. Click below to try connecting again.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleRetry}
+              className="inline-flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold py-2.5 px-6 rounded-xl transition-all duration-200 shadow-lg shadow-indigo-600/10 hover:shadow-indigo-500/25 active:scale-95"
+            >
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" style={{ animationDuration: '3s' }} />
+              <span>Retry Connection</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+

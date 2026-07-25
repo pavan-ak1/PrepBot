@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 export async function connectDB() {
-  const mongoURI = process.env.MONGO_URI;
+  const mongoURI = process.env.MONGO_URI || process.env.MONGO_URI_USER;
 
   if (!mongoURI) {
     throw new Error("Db string not available");
