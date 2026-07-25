@@ -13,9 +13,7 @@ import {
   CheckCircle2,
   Sparkles,
   RefreshCw,
-  X,
-  ChevronRight,
-  Info
+  X
 } from 'lucide-react';
 
 export default function GenerateReport() {

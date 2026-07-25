@@ -8,7 +8,6 @@ import {
   ArrowRight, 
   Eye, 
   EyeOff, 
-  CheckCircle2, 
   Sparkles, 
   TrendingUp, 
   Terminal 

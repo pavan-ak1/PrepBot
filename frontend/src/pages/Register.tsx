@@ -9,7 +9,6 @@ import {
   ArrowRight, 
   Eye, 
   EyeOff, 
-  CheckCircle2, 
   Sparkles, 
   Terminal, 
   TrendingUp 

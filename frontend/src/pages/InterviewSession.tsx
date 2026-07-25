@@ -15,7 +15,6 @@ import {
   Mic,
   MicOff,
   ChevronRight,
-  Play,
   Sparkles
 } from 'lucide-react';
 
@@ -187,7 +186,6 @@ export default function InterviewSessionPage() {
 
   const currentIdx = session!.currentQuestionIndex;
   const totalQs = (session as any).totalQuestions || session!.questions.length;
-  const progressionPct = ((currentIdx + 1) / totalQs) * 100;
 
   return (
     <div className="min-h-screen bg-[#05070c] text-slate-100 flex flex-col overflow-hidden bg-grid-pattern relative">

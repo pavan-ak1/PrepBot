@@ -4,14 +4,11 @@ import { jobPrepAPI, sessionAPI } from '../services/api';
 import { 
   ArrowLeft, 
   Play, 
-  TrendingUp, 
   AlertTriangle, 
   Calendar, 
   Loader2,
   CheckCircle2,
   Award,
-  BookOpen,
-  ChevronRight,
   Sparkles,
   FileText,
   Trash2

@@ -8,8 +8,6 @@ import {
   Menu, 
   X, 
   GraduationCap, 
-  User, 
-  HelpCircle,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';

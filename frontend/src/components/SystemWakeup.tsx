@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import { 
-  Server, 
   Loader2, 
   CheckCircle2, 
   XCircle, 
   ChevronDown, 
   ChevronUp,
-  Wifi,
-  WifiOff
+  Wifi
 } from 'lucide-react';
 import { wakeupService, type WakeupState } from '../services/wakeup';
 
