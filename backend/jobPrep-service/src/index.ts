@@ -28,6 +28,9 @@ app.use(attachUser);
 
 app.use('/api/v1/interview', interviewRoute)
 
+app.get('/health', (req: Request, res: Response) => {
+    res.status(200).json({ status: "UP", service: "JobPrep Service" });
+});
 
 app.get('/', (req:Request,res:Response)=>{
     res.send('Server up and running');

@@ -23,8 +23,14 @@ let currentState: WakeupState = {
 let isTriggered = false;
 let shouldResetOnNextPoll = false;
 
+const serviceNameMap: Record<string, string> = {
+  "User Service": "user",
+  "JobPrep Service": "jobprep",
+  "Session Service": "session",
+};
+
 const pollHealth = async (onUpdate: () => void, state: WakeupState) => {
-  const maxRetries = 300; // 300 retries * 3 seconds = 15 min limit
+  const maxRetries = 15; // 15 retries * 5 seconds = 75 seconds limit for Gateway itself to respond
   let attempts = 0;
 
   while (attempts < maxRetries) {
@@ -33,11 +39,10 @@ const pollHealth = async (onUpdate: () => void, state: WakeupState) => {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s request timeout
-      
-      const resetParam = shouldResetOnNextPoll ? '?reset=true' : '';
-      shouldResetOnNextPoll = false;
-      const url = `${GATEWAY_URL}/health${resetParam}`;
+      // Allow up to 4 minutes for the entire warm-up manager to complete and respond
+      const timeoutId = setTimeout(() => controller.abort(), 240000);
+
+      const url = `${GATEWAY_URL}/warmup`;
 
       const res = await fetch(url, {
         method: 'GET',
@@ -46,36 +51,48 @@ const pollHealth = async (onUpdate: () => void, state: WakeupState) => {
       });
       clearTimeout(timeoutId);
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.services) {
-          Object.entries(data.services).forEach(([id, status]) => {
-            state.services[id] = status as 'online' | 'loading' | 'offline';
-          });
-          
-          state.allOnline = data.status === 'UP';
-          onUpdate();
-          
-          if (state.allOnline) return;
-        }
-      } else {
-        // Gateway responded but with error; keep/set status to loading
-        Object.keys(state.services).forEach((id) => {
-          state.services[id] = 'loading';
-        });
+      if (res.status === 200) {
+        state.services.gateway = 'online';
+        state.services.user = 'online';
+        state.services.jobprep = 'online';
+        state.services.session = 'online';
+        state.allOnline = true;
         onUpdate();
+        return;
+      } else if (res.status === 503) {
+        const data = await res.json();
+        const failedList: string[] = data.failedServices || [];
+        
+        state.services.gateway = 'online';
+        state.services.user = 'online';
+        state.services.jobprep = 'online';
+        state.services.session = 'online';
+
+        failedList.forEach((failedName) => {
+          const serviceId = serviceNameMap[failedName];
+          if (serviceId) {
+            state.services[serviceId] = 'offline';
+          }
+        });
+
+        state.allOnline = false;
+        onUpdate();
+        return;
+      } else {
+        throw new Error(`Unexpected HTTP status ${res.status}`);
       }
     } catch (e) {
-      console.log(`Failed to fetch gateway health (attempt ${attempts + 1}):`, e);
-      // Network/CORS error or timeout; Gateway itself is waking up
-      Object.keys(state.services).forEach((id) => {
-        state.services[id] = 'loading';
-      });
+      console.log(`Failed to fetch gateway warmup (attempt ${attempts + 1}):`, e);
+      state.services.gateway = 'loading';
+      state.services.user = 'loading';
+      state.services.jobprep = 'loading';
+      state.services.session = 'loading';
+      state.allOnline = false;
       onUpdate();
     }
 
     attempts++;
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
   }
 
   // After max retries, mark any unresolved services as offline
@@ -87,6 +104,7 @@ const pollHealth = async (onUpdate: () => void, state: WakeupState) => {
   state.allOnline = Object.values(state.services).every((s) => s === 'online');
   onUpdate();
 };
+
 
 export const wakeupService = {
   subscribe(listener: StatusListener) {

@@ -20,8 +20,10 @@ import morgan from "morgan";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { SERVICES } from "./config/services.js";
 import { authenticateUser } from "./middleware/authMiddleware.js";
+import warmupRouter from "./routes/warmup.route.js";
 
 const app = express();
+
 
 const allowedOrigins = process.env.CLIENT_URL
   ? process.env.CLIENT_URL.split(",").map((o) => o.trim())
@@ -33,6 +35,8 @@ app.use(cors({
 }));
 app.use(helmet());
 app.use(morgan("dev"));
+app.use(warmupRouter);
+
 
 const serviceStatus: Record<string, "online" | "loading"> = {
   user: "loading",

@@ -31,6 +31,9 @@ app.use(cors({
 //router middleware
 app.use('/api/v1/auth', authRouter); //usecase /register, /login
 
+app.get('/health', (req: Request, res: Response) => {
+    res.status(200).json({ status: "UP", service: "User Service" });
+});
 
 app.get('/', (req:Request,res:Response)=>{
     res.send('Server up and running');
