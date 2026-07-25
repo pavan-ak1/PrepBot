@@ -20,3 +20,18 @@ export interface WarmupResult {
   success: boolean;
   failedServices?: string[];
 }
+
+export interface ServiceStatus {
+  gateway: 'online' | 'offline' | 'loading';
+  user: 'online' | 'offline' | 'loading';
+  jobprep: 'online' | 'offline' | 'loading';
+  session: 'online' | 'offline' | 'loading';
+}
+
+export interface WarmupStatusResult {
+  ready: boolean;
+  isWarmingUp: boolean;
+  services: ServiceStatus;
+  failedServices: string[];
+}
+

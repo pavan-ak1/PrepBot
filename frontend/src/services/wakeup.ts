@@ -22,26 +22,23 @@ let currentState: WakeupState = {
 };
 let isTriggered = false;
 
-const serviceNameMap: Record<string, string> = {
-  "User Service": "user",
-  "JobPrep Service": "jobprep",
-  "Session Service": "session",
-};
 
-const pollHealth = async (onUpdate: () => void, state: WakeupState) => {
-  const maxRetries = 15; // 15 retries * 5 seconds = 75 seconds limit for Gateway itself to respond
+const pollHealth = async (onUpdate: () => void, state: WakeupState, force = false) => {
+  const maxAttempts = 90; // 90 attempts * 2 seconds = 180 seconds total limit
   let attempts = 0;
+  let forceParam = force;
 
-  while (attempts < maxRetries) {
+  while (attempts < maxAttempts) {
     if (state !== currentState) return;
     if (state.allOnline) return;
 
     try {
       const controller = new AbortController();
-      // Allow up to 4 minutes for the entire warm-up manager to complete and respond
-      const timeoutId = setTimeout(() => controller.abort(), 240000);
+      // Fast timeout per poll request since it returns immediately
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const url = `${GATEWAY_URL}/warmup`;
+      const url = `${GATEWAY_URL}/warmup` + (forceParam ? '?force=true' : '');
+      forceParam = false; // Only send force on the first poll request
 
       const res = await fetch(url, {
         method: 'GET',
@@ -51,47 +48,33 @@ const pollHealth = async (onUpdate: () => void, state: WakeupState) => {
       clearTimeout(timeoutId);
 
       if (res.status === 200) {
-        state.services.gateway = 'online';
-        state.services.user = 'online';
-        state.services.jobprep = 'online';
-        state.services.session = 'online';
-        state.allOnline = true;
-        onUpdate();
-        return;
-      } else if (res.status === 503) {
         const data = await res.json();
-        const failedList: string[] = data.failedServices || [];
         
-        state.services.gateway = 'online';
-        state.services.user = 'online';
-        state.services.jobprep = 'online';
-        state.services.session = 'online';
-
-        failedList.forEach((failedName) => {
-          const serviceId = serviceNameMap[failedName];
-          if (serviceId) {
-            state.services[serviceId] = 'offline';
-          }
-        });
-
-        state.allOnline = false;
+        if (data.services) {
+          state.services = { ...data.services };
+        }
+        state.allOnline = data.ready;
         onUpdate();
-        return;
+
+        if (data.ready) {
+          return;
+        }
+
+        if (!data.isWarmingUp) {
+          // Warmup run has completed, but not all services are ready (timed out/offline)
+          return;
+        }
       } else {
         throw new Error(`Unexpected HTTP status ${res.status}`);
       }
     } catch (e) {
-      console.log(`Failed to fetch gateway warmup (attempt ${attempts + 1}):`, e);
+      console.log(`Failed to fetch gateway warmup status (attempt ${attempts + 1}):`, e);
       state.services.gateway = 'loading';
-      state.services.user = 'loading';
-      state.services.jobprep = 'loading';
-      state.services.session = 'loading';
-      state.allOnline = false;
       onUpdate();
     }
 
     attempts++;
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 
   // After max retries, mark any unresolved services as offline
@@ -118,15 +101,15 @@ export const wakeupService = {
     return currentState;
   },
 
-  startWakeup() {
-    if (isTriggered) return;
+  startWakeup(force = false) {
+    if (isTriggered && !force) return;
     isTriggered = true;
 
     const notify = () => {
       listeners.forEach((l) => l(currentState));
     };
 
-    pollHealth(notify, currentState);
+    pollHealth(notify, currentState, force);
   },
 
   reset() {

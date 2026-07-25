@@ -46,7 +46,7 @@ export default function SystemWakeup({ onReady }: SystemWakeupProps) {
 
   const handleRetry = () => {
     wakeupService.reset();
-    wakeupService.startWakeup();
+    wakeupService.startWakeup(true);
   };
 
   const serviceNames: Record<string, string> = {

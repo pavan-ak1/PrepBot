@@ -5,15 +5,9 @@ const router = Router();
 
 router.get("/warmup", async (req, res) => {
   try {
-    const result = await warmup();
-    if (result.success) {
-      res.status(200).json({ success: true, ready: true });
-    } else {
-      res.status(503).json({
-        success: false,
-        failedServices: result.failedServices,
-      });
-    }
+    const force = req.query.force === "true";
+    const status = await warmup(force);
+    res.status(200).json(status);
   } catch (error) {
     console.error("[Warmup Route] Error during warmup:", error);
     res.status(500).json({
