@@ -85,9 +85,12 @@ export const startInterviewSession = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error("Error in startInterviewSession:", error);
-    res.status(error.response?.status || 500).json({
-      message: error.message || "Failed to start interview session",
+    const status = error.response?.status || 500;
+    const message = error.response?.data?.message || error.message || "Failed to start interview session";
+    res.status(status).json({
+      message,
       success: false,
+      details: error.response?.data || undefined,
     });
   }
 };
