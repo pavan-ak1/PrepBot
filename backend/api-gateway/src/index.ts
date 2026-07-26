@@ -26,8 +26,13 @@ const app = express();
 
 
 app.use(cors({
-  origin: true,
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    callback(null, true);
+  },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+  exposedHeaders: ["Set-Cookie"]
 }));
 app.use(helmet());
 app.use(morgan("dev"));

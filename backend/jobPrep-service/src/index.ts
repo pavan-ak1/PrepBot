@@ -17,8 +17,13 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-    origin: true,
-    credentials: true
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        callback(null, true);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+    exposedHeaders: ["Set-Cookie"]
 }));
 
 //middlewares

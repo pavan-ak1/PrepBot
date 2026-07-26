@@ -163,6 +163,16 @@ export default function SystemWakeup({ onReady }: SystemWakeupProps) {
             </button>
           </div>
         )}
+
+        {/* Skip option */}
+        <div className="mt-6 pt-4 border-t border-slate-900/60">
+          <button
+            onClick={onReady}
+            className="text-xs text-slate-500 hover:text-slate-350 transition-colors duration-200 underline underline-offset-4 font-medium"
+          >
+            Skip & Enter Application
+          </button>
+        </div>
       </div>
     </div>
   );
