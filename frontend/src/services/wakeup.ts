@@ -1,7 +1,13 @@
-const GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL || 
+const GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL ||
   (typeof window !== 'undefined' && window.location.hostname.includes('localhost')
     ? 'http://localhost:3000'
     : 'https://prepbot-api-gateway.onrender.com');
+
+const USER_URL = import.meta.env.VITE_USER_SERVICE_URL || 'http://localhost:8080'
+
+const JOBPREP_URL = import.meta.env.VITE_JOBPREP_SERVICE_URL || 'http://localhost:8081'
+
+const SESSION_URL = import.meta.env.VITE_SESSION_SERVICE_URL || 'http://localhost:8082'
 
 export interface WakeupState {
   services: Record<string, 'loading' | 'online' | 'offline'>;
@@ -23,54 +29,56 @@ let currentState: WakeupState = {
 let isTriggered = false;
 
 
-const pollHealth = async (onUpdate: () => void, state: WakeupState, force = false) => {
+const pollHealth = async (onUpdate: () => void, state: WakeupState) => {
   const maxAttempts = 90; // 90 attempts * 2 seconds = 180 seconds total limit
   let attempts = 0;
-  let forceParam = force;
+
+  const services = [
+    { id: 'gateway', url: `${GATEWAY_URL}/health` },
+    { id: 'user', url: `${USER_URL}/health` },
+    { id: 'jobprep', url: `${JOBPREP_URL}/health` },
+    { id: 'session', url: `${SESSION_URL}/health` },
+  ];
 
   while (attempts < maxAttempts) {
     if (state !== currentState) return;
     if (state.allOnline) return;
 
-    try {
-      const controller = new AbortController();
-      // Fast timeout per poll request since it returns immediately
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      const url = `${GATEWAY_URL}/warmup` + (forceParam ? '?force=true' : '');
-      forceParam = false; // Only send force on the first poll request
-
-      const res = await fetch(url, {
-        method: 'GET',
-        signal: controller.signal,
-        cache: 'no-store',
-      });
-      clearTimeout(timeoutId);
-
-      if (res.status === 200) {
-        const data = await res.json();
-        
-        if (data.services) {
-          state.services = { ...data.services };
-        }
-        state.allOnline = data.ready;
-        onUpdate();
-
-        if (data.ready) {
-          return;
-        }
-
-        if (!data.isWarmingUp) {
-          // Warmup run has completed, but not all services are ready (timed out/offline)
-          return;
-        }
-      } else {
-        throw new Error(`Unexpected HTTP status ${res.status}`);
+    // Ping each service that is not yet online
+    const promises = services.map(async (service) => {
+      if (state.services[service.id] === 'online') {
+        return;
       }
-    } catch (e) {
-      console.log(`Failed to fetch gateway warmup status (attempt ${attempts + 1}):`, e);
-      state.services.gateway = 'loading';
-      onUpdate();
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const res = await fetch(service.url, {
+          method: 'GET',
+          signal: controller.signal,
+          cache: 'no-store',
+        });
+        clearTimeout(timeoutId);
+
+        if (res.status === 200) {
+          state.services[service.id] = 'online';
+        } else {
+          state.services[service.id] = 'loading';
+        }
+      } catch (e) {
+        console.log(`Failed to ping ${service.id} (attempt ${attempts + 1}):`, e);
+        state.services[service.id] = 'loading';
+      }
+    });
+
+    await Promise.all(promises);
+
+    state.allOnline = Object.values(state.services).every((s) => s === 'online');
+    onUpdate();
+
+    if (state.allOnline) {
+      return;
     }
 
     attempts++;
@@ -109,7 +117,7 @@ export const wakeupService = {
       listeners.forEach((l) => l(currentState));
     };
 
-    pollHealth(notify, currentState, force);
+    pollHealth(notify, currentState);
   },
 
   reset() {
