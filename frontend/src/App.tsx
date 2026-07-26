@@ -13,7 +13,7 @@ import SystemWakeup from './components/SystemWakeup';
 
 function App(): JSX.Element {
   const [isAuthenticated, setIsAuthenticated] = useState(authService.isAuthenticated());
-  const [isReady, setIsReady] = useState(false);
+  const [isReady, setIsReady] = useState(true);
 
   useEffect(() => {
     const checkAuth = () => {
