@@ -52,7 +52,7 @@ export default function Dashboard() {
     
     activeRoadmap.preparationPlan.forEach((plan: any) => {
       if (plan.tasks && Array.isArray(plan.tasks)) {
-        plan.tasks.forEach((task: string, taskIdx: number) => {
+        plan.tasks.forEach((_task: string, taskIdx: number) => {
           totalTasks++;
           const key = `roadmap_${activeRoadmap.reportId}_day_${plan.day}_task_${taskIdx}`;
           if (checkedTasks[key]) {
