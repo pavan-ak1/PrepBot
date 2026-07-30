@@ -26,6 +26,8 @@ export const startInterviewSession = async (req: Request, res: Response) => {
         return res.status(400).json({
           message: "You have already completed the interview session for this report.",
           success: false,
+          sessionId: existingSession._id,
+          isCompleted: true,
         });
       }
 

@@ -108,3 +108,33 @@ export const deleteInterviewReport = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const getPreparationRoadmaps = async (req: Request, res: Response) => {
+  try {
+    const reports = await interviewReportModel
+      .find({ userId: req.user?.id })
+      .select("_id jobDescription preparationPlan createdAt")
+      .sort({ createdAt: -1 });
+
+    const roadmaps = reports.map((report) => {
+      const jobSnippet = report.jobDescription?.trim().split('\n')[0] || 'Target Role';
+      const jobTitle = jobSnippet.length > 55 ? jobSnippet.substring(0, 55) + '...' : jobSnippet;
+      return {
+        reportId: report._id,
+        jobTitle,
+        preparationPlan: report.preparationPlan || [],
+        createdAt: report.createdAt,
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      roadmaps,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      message: error.message || "Failed to fetch roadmaps",
+      success: false,
+    });
+  }
+};

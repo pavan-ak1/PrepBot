@@ -22,7 +22,7 @@ function App(): JSX.Element {
 
     // Listen for storage changes (for multi-tab support)
     window.addEventListener('storage', checkAuth);
-    
+
     // Custom event for login/logout within same tab
     window.addEventListener('auth-change', checkAuth);
 

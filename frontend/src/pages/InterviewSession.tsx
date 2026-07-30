@@ -2,24 +2,24 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { sessionAPI } from '../services/api';
 import type { InterviewSession, Question } from '../types';
-import { 
-  ArrowLeft, 
-  Send, 
-  CheckCircle2, 
-  Loader2, 
-  Info, 
-  CheckCircle, 
+import {
+  ArrowLeft,
+  Send,
+  CheckCircle2,
+  Loader2,
+  Info,
+  CheckCircle,
   AlertCircle,
   HelpCircle,
   Clock,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Award
 } from 'lucide-react';
 
 export default function InterviewSessionPage() {
   const { reportId } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
-  
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(true);
@@ -55,8 +55,20 @@ export default function InterviewSessionPage() {
   const startSession = async () => {
     try {
       setLoading(true);
+
+      // Pre-check if session is already completed to redirect immediately
+      try {
+        const sessionStatusResponse = await sessionAPI.getSessionByReport(reportId!);
+        if (sessionStatusResponse.data.session?.status === 'completed') {
+          navigate(`/results/${sessionStatusResponse.data.session._id}`);
+          return;
+        }
+      } catch (statusErr) {
+        console.error('Failed to pre-check session status:', statusErr);
+      }
+
       const sessionResponse = await sessionAPI.startSession(reportId!);
-      
+
       const sessionData = {
         _id: sessionResponse.data.sessionId,
         questions: [sessionResponse.data.firstQuestion],
@@ -65,7 +77,12 @@ export default function InterviewSessionPage() {
       };
       setSession(sessionData as any);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to start session');
+      const responseData = err.response?.data;
+      if (responseData?.isCompleted && responseData?.sessionId) {
+        navigate(`/results/${responseData.sessionId}`);
+        return;
+      }
+      setError(responseData?.message || 'Failed to start session');
     } finally {
       setLoading(false);
     }
@@ -78,11 +95,11 @@ export default function InterviewSessionPage() {
       setSubmitting(true);
 
       const response = await sessionAPI.submitAnswer(session._id, answer);
-      
+
       setEvaluation(response.data.evaluation);
       setAnswer('');
       setShowIntention(false);
-      
+
       if (response.data.completed) {
         setCompleted(true);
         setTimeout(() => {
@@ -143,6 +160,57 @@ export default function InterviewSessionPage() {
   }
 
   if (error) {
+    const isCompletedError = error.toLowerCase().includes('completed') || error.toLowerCase().includes('already');
+    
+    if (isCompletedError) {
+      return (
+        <div className="min-h-screen bg-[#05070c] flex items-center justify-center px-4 bg-grid-pattern relative">
+          <div className="bg-slate-900/40 backdrop-blur-2xl border border-slate-800/80 rounded-3xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl relative overflow-hidden">
+            {/* Glow decorations */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+            
+            <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-2xl w-fit mx-auto animate-pulse">
+              <Award className="h-10 w-10" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold text-white tracking-tight">Session Already Completed</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                You have already completed the mock interview session for this report. Your capability scorecard and feedback are ready.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    const res = await sessionAPI.getSessionByReport(reportId!);
+                    if (res.data.session?._id) {
+                      navigate(`/results/${res.data.session._id}`);
+                    } else {
+                      navigate('/dashboard');
+                    }
+                  } catch (e) {
+                    navigate('/dashboard');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="w-full py-3 rounded-xl bg-white text-slate-950 font-extrabold hover:bg-slate-100 active:scale-98 transition-all text-xs shadow-md"
+              >
+                View Interview Results
+              </button>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="w-full py-3 rounded-xl bg-slate-950 border border-slate-850 hover:border-slate-800 text-slate-400 hover:text-white active:scale-98 transition-all text-xs"
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[#05070c] flex items-center justify-center px-4 bg-grid-pattern relative">
         <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs px-6 py-4 rounded-2xl max-w-md backdrop-blur-sm">
@@ -169,7 +237,7 @@ export default function InterviewSessionPage() {
 
   return (
     <div className="min-h-screen bg-[#05070c] text-slate-100 flex flex-col overflow-hidden bg-grid-pattern relative">
-      
+
       {/* Distraction-Free Header */}
       <header className="sticky top-0 z-40 bg-[#080a10]/85 backdrop-blur-xl border-b border-slate-900 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -180,7 +248,7 @@ export default function InterviewSessionPage() {
             <ArrowLeft className="h-4.5 w-4.5" />
             <span className="text-xs font-bold uppercase tracking-wider">Quit Workspace</span>
           </button>
-          
+
           <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#0b0e15] border border-slate-850 text-slate-350">
             Interview Question {currentIdx + 1} of {totalQs}
           </div>
@@ -194,10 +262,10 @@ export default function InterviewSessionPage() {
 
       {/* Main Split Panels */}
       <div className="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch overflow-y-auto">
-        
+
         {/* Left Side: Question Context Pane (4 cols) */}
         <div className="lg:col-span-5 flex flex-col space-y-5">
-          
+
           {/* Progress Tracker list */}
           <div className="custom-glass rounded-2xl p-5 space-y-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-450">Assessment Progress</h3>
@@ -206,18 +274,17 @@ export default function InterviewSessionPage() {
                 const isActive = idx === currentIdx;
                 const isPassed = idx < currentIdx;
                 return (
-                  <div 
-                    key={idx} 
-                    className={`h-1.5 rounded-full flex-grow transition-all duration-300 ${
-                      isPassed ? 'bg-emerald-500' :
+                  <div
+                    key={idx}
+                    className={`h-1.5 rounded-full flex-grow transition-all duration-300 ${isPassed ? 'bg-emerald-500' :
                       isActive ? 'bg-indigo-650 animate-pulse' :
-                      'bg-slate-850 border border-slate-800'
-                    }`}
+                        'bg-slate-850 border border-slate-800'
+                      }`}
                   />
                 );
               })}
             </div>
-            
+
             {/* Steps Timeline view */}
             <div className="space-y-3 pt-2">
               {Array.from({ length: totalQs }).map((_, idx) => {
@@ -225,16 +292,14 @@ export default function InterviewSessionPage() {
                 const isPassed = idx < currentIdx;
                 return (
                   <div key={idx} className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
-                      isPassed ? 'bg-emerald-500/20 text-emerald-450 border border-emerald-500/30' :
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${isPassed ? 'bg-emerald-500/20 text-emerald-450 border border-emerald-500/30' :
                       isActive ? 'bg-indigo-500 text-white animate-pulse' :
-                      'bg-slate-900 text-slate-600 border border-slate-850'
-                    }`}>
+                        'bg-slate-900 text-slate-600 border border-slate-850'
+                      }`}>
                       {isPassed ? '✓' : idx + 1}
                     </div>
-                    <span className={`text-xs font-semibold ${
-                      isActive ? 'text-indigo-400 font-bold' : 'text-slate-500'
-                    }`}>
+                    <span className={`text-xs font-semibold ${isActive ? 'text-indigo-400 font-bold' : 'text-slate-500'
+                      }`}>
                       Question {idx + 1} {isActive ? '(Active)' : isPassed ? '(Answered)' : ''}
                     </span>
                   </div>
@@ -247,11 +312,10 @@ export default function InterviewSessionPage() {
           <div className="custom-glass rounded-3xl p-6 space-y-4 relative flex-grow flex flex-col justify-between">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className={`px-2.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${
-                  currentQuestion.type === 'technical' 
-                    ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/25' 
-                    : 'bg-violet-500/10 text-violet-400 border border-violet-500/25'
-                }`}>
+                <span className={`px-2.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider ${currentQuestion.type === 'technical'
+                  ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/25'
+                  : 'bg-violet-500/10 text-violet-400 border border-violet-500/25'
+                  }`}>
                   {currentQuestion.type} question
                 </span>
 
@@ -290,12 +354,12 @@ export default function InterviewSessionPage() {
 
         {/* Right Side: Answer Input & Workspace (7 cols) */}
         <div className="lg:col-span-7 flex flex-col space-y-6">
-          
+
           {/* Main workspace Textarea */}
           <div className="custom-glass rounded-3xl p-6 flex flex-col flex-1 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-900 pb-3">
               <span className="text-xs font-bold text-slate-350 uppercase tracking-wider">Workspace Draft</span>
-              
+
 
             </div>
 

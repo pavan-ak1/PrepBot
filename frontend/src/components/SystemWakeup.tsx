@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { 
-  Loader2, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  Loader2,
+  CheckCircle2,
+  XCircle,
   AlertCircle,
   RefreshCw,
   Wifi,
@@ -69,17 +69,15 @@ export default function SystemWakeup({ onReady }: SystemWakeupProps) {
 
       <div className="w-full max-w-md bg-slate-900/40 backdrop-blur-2xl border border-slate-800/80 rounded-3xl p-8 shadow-2xl relative overflow-hidden text-center">
         {/* Glow effect on the container border */}
-        <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl opacity-15 pointer-events-none transition-colors duration-500 ${
-          state.allOnline ? 'bg-emerald-500' : 'bg-indigo-500'
-        }`} />
+        <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl opacity-15 pointer-events-none transition-colors duration-500 ${state.allOnline ? 'bg-emerald-500' : 'bg-indigo-500'
+          }`} />
 
         {/* Center Animated Logo / Icon */}
         <div className="relative inline-flex mb-6">
-          <div className={`p-4 rounded-2xl border bg-slate-950/60 transition-all duration-500 ${
-            state.allOnline 
-              ? 'border-emerald-500/30 text-emerald-400 shadow-lg shadow-emerald-500/10' 
+          <div className={`p-4 rounded-2xl border bg-slate-950/60 transition-all duration-500 ${state.allOnline
+              ? 'border-emerald-500/30 text-emerald-400 shadow-lg shadow-emerald-500/10'
               : 'border-indigo-500/30 text-indigo-400'
-          }`}>
+            }`}>
             {state.allOnline ? (
               <Wifi className="h-10 w-10 animate-bounce" />
             ) : (
@@ -94,8 +92,8 @@ export default function SystemWakeup({ onReady }: SystemWakeupProps) {
           PrepBot System Warmup
         </h2>
         <p className="text-slate-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
-          {state.allOnline 
-            ? 'All systems connected! Starting application...' 
+          {state.allOnline
+            ? 'All systems connected! Starting application...'
             : 'Starting cloud backend instances (Render free tier). This may take a few minutes if they are sleeping.'}
         </p>
 
@@ -106,7 +104,7 @@ export default function SystemWakeup({ onReady }: SystemWakeupProps) {
             <span>{Math.round(progressPercent)}%</span>
           </div>
           <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-900">
-            <div 
+            <div
               className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all duration-500 ease-out"
               style={{ width: `${progressPercent}%` }}
             />

@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import { upload } from "../middleware/fileMiddleware.js";
-import { generateInterviewReport, getInterviewReportById, getAllInterviewReports, deleteInterviewReport } from "../controller/interviewController.js";
+import { generateInterviewReport, getInterviewReportById, getAllInterviewReports, deleteInterviewReport, getPreparationRoadmaps } from "../controller/interviewController.js";
 
 const interviewRoute:Router = Router();
 
@@ -13,6 +13,11 @@ interviewRoute.post(
 interviewRoute.get(
   '/reports',
   getAllInterviewReports
+);
+
+interviewRoute.get(
+  '/reports/roadmaps',
+  getPreparationRoadmaps
 );
 
 interviewRoute.get(

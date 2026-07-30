@@ -9,13 +9,12 @@ import {
   Clock, 
   ChevronRight,
   Briefcase,
-  Search,
-  BookOpen,
-  CheckCircle,
   FileText,
   AlertTriangle,
   Play,
-  Trash2
+  Trash2,
+  Calendar,
+  Loader2
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -24,7 +23,47 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [reportToDelete, setReportToDelete] = useState<{ id: string; title: string } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  // Dynamic Roadmaps states
+  const [roadmaps, setRoadmaps] = useState<any[]>([]);
+  const [selectedRoadmapIdx, setSelectedRoadmapIdx] = useState<number>(0);
+  const [roadmapsLoading, setRoadmapsLoading] = useState(true);
+  const [checkedTasks, setCheckedTasks] = useState<Record<string, boolean>>(() => {
+    const saved = localStorage.getItem('prepbot_dashboard_completed_tasks');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const toggleTaskChecked = (reportId: string, day: number, taskIdx: number) => {
+    const key = `roadmap_${reportId}_day_${day}_task_${taskIdx}`;
+    setCheckedTasks((prev) => {
+      const updated = { ...prev, [key]: !prev[key] };
+      localStorage.setItem('prepbot_dashboard_completed_tasks', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const getActiveRoadmapProgress = (activeRoadmap: any) => {
+    if (!activeRoadmap || !activeRoadmap.preparationPlan || activeRoadmap.preparationPlan.length === 0) {
+      return 0;
+    }
+    
+    let totalTasks = 0;
+    let completedTasksCount = 0;
+    
+    activeRoadmap.preparationPlan.forEach((plan: any) => {
+      if (plan.tasks && Array.isArray(plan.tasks)) {
+        plan.tasks.forEach((task: string, taskIdx: number) => {
+          totalTasks++;
+          const key = `roadmap_${activeRoadmap.reportId}_day_${plan.day}_task_${taskIdx}`;
+          if (checkedTasks[key]) {
+            completedTasksCount++;
+          }
+        });
+      }
+    });
+    
+    return totalTasks > 0 ? Math.round((completedTasksCount / totalTasks) * 100) : 0;
+  };
 
   const handleDeleteClick = (id: string, title: string) => {
     setReportToDelete({ id, title });
@@ -41,6 +80,21 @@ export default function Dashboard() {
         console.error("Failed to delete sessions associated with report:", err);
       }
       setReports(prev => prev.filter(r => r._id !== reportToDelete.id));
+      setRoadmaps(prev => {
+        const filtered = prev.filter(r => r.reportId !== reportToDelete.id);
+        setSelectedRoadmapIdx(0);
+        return filtered;
+      });
+      setCheckedTasks((prev) => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach((key) => {
+          if (key.startsWith(`roadmap_${reportToDelete.id}_`)) {
+            delete updated[key];
+          }
+        });
+        localStorage.setItem('prepbot_dashboard_completed_tasks', JSON.stringify(updated));
+        return updated;
+      });
       setReportToDelete(null);
     } catch (err) {
       console.error("Failed to delete report:", err);
@@ -49,23 +103,11 @@ export default function Dashboard() {
       setDeletingId(null);
     }
   };
-  const [filterTab, setFilterTab] = useState<'all' | 'high' | 'action'>('all');
 
-  // Interactive Checklist State
-  const [checklist, setChecklist] = useState(() => {
-    const saved = localStorage.getItem('prepbot_dashboard_checklist');
-    if (saved) return JSON.parse(saved);
-    return [
-      { id: 1, text: 'Review core algorithms & structures', checked: false },
-      { id: 2, text: 'Draft STAR method behavioral templates', checked: false },
-      { id: 3, text: 'Upload latest resume and sync skills', checked: true },
-      { id: 4, text: 'Complete at least one full mock session', checked: false },
-      { id: 5, text: 'Study identified gaps from scorecard', checked: false }
-    ];
-  });
-
+  // Fetch reports and roadmaps on mount
   useEffect(() => {
     fetchReports();
+    fetchRoadmaps();
   }, []);
 
   const fetchReports = async () => {
@@ -79,12 +121,16 @@ export default function Dashboard() {
     }
   };
 
-  const handleCheckToggle = (id: number) => {
-    const updated = checklist.map((item: any) => 
-      item.id === id ? { ...item, checked: !item.checked } : item
-    );
-    setChecklist(updated);
-    localStorage.setItem('prepbot_dashboard_checklist', JSON.stringify(updated));
+  const fetchRoadmaps = async () => {
+    try {
+      setRoadmapsLoading(true);
+      const response = await jobPrepAPI.getPreparationRoadmaps();
+      setRoadmaps(response.data.roadmaps || []);
+    } catch (error) {
+      console.error('Failed to fetch roadmaps:', error);
+    } finally {
+      setRoadmapsLoading(false);
+    }
   };
 
   const reportsWithScore = reports.filter(r => r.matchScore);
@@ -92,19 +138,8 @@ export default function Dashboard() {
     ? Math.round(reportsWithScore.reduce((acc, curr) => acc + curr.matchScore, 0) / reportsWithScore.length)
     : null;
 
-  // Filter and Search logic
-  const filteredReports = reports.filter(report => {
-    const jobSnippet = report.jobDescription?.toLowerCase() || '';
-    const matchesSearch = jobSnippet.includes(searchQuery.toLowerCase());
-    
-    if (filterTab === 'high') {
-      return matchesSearch && report.matchScore && report.matchScore >= 80;
-    }
-    if (filterTab === 'action') {
-      return matchesSearch && (!report.matchScore || report.matchScore < 80);
-    }
-    return matchesSearch;
-  });
+  // Display all reports directly as filtering/searching is disabled
+  const filteredReports = reports;
 
   return (
     <div className="space-y-8 pb-12">
@@ -172,48 +207,8 @@ export default function Dashboard() {
         
         {/* Left Columns: Reports Explorer */}
         <div className="lg:col-span-2 space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-900 pb-4">
+          <div className="flex items-center justify-between border-b border-slate-900 pb-4">
             <h2 className="text-lg font-bold text-white">Target Job Reports</h2>
-            
-            {/* Filter Tabs */}
-            <div className="flex bg-[#0b0e15] border border-slate-900 p-1 rounded-xl text-xs">
-              <button 
-                onClick={() => setFilterTab('all')}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                  filterTab === 'all' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                All
-              </button>
-              <button 
-                onClick={() => setFilterTab('high')}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                  filterTab === 'high' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                High Match
-              </button>
-              <button 
-                onClick={() => setFilterTab('action')}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                  filterTab === 'action' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Focus Areas
-              </button>
-            </div>
-          </div>
-
-          {/* Search bar */}
-          <div className="relative group">
-            <Search className="absolute inset-y-0 left-3.5 my-auto h-4 w-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
-            <input
-              type="text"
-              placeholder="Search reports by job title or keywords..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-[#0b0e15]/60 border border-slate-900 hover:border-slate-800 focus:border-indigo-500/50 rounded-xl text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all placeholder-slate-650"
-            />
           </div>
 
           {loading ? (
@@ -315,62 +310,111 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Right Sidebar Checklist */}
+        {/* Right Sidebar Preparation plan */}
         <div className="space-y-6">
-          <div className="custom-glass rounded-2xl p-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/5 rounded-full blur-xl" />
+          <div className="custom-glass rounded-2xl p-6 relative overflow-hidden flex flex-col">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/5 rounded-full blur-xl pointer-events-none" />
             <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-              <BookOpen className="h-4.5 w-4.5 text-indigo-400" />
-              Preparation Checklist
+              <Calendar className="h-4.5 w-4.5 text-indigo-400" />
+              Preparation Plan
             </h3>
-            
-            <div className="space-y-3.5">
-              {checklist.map((item: any) => (
-                <div 
-                  key={item.id} 
-                  onClick={() => handleCheckToggle(item.id)}
-                  className="flex items-start gap-3 cursor-pointer group text-xs"
-                >
-                  <div className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center border transition-all ${
-                    item.checked 
-                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm' 
-                      : 'border-slate-800 group-hover:border-slate-700 bg-slate-950/50'
-                  }`}>
-                    {item.checked && <CheckCircle className="h-3 w-3" />}
-                  </div>
-                  <span className={`leading-relaxed transition-colors ${
-                    item.checked ? 'text-slate-500 line-through' : 'text-slate-400 group-hover:text-slate-200'
-                  }`}>
-                    {item.text}
-                  </span>
+
+            {roadmapsLoading ? (
+              <div className="flex flex-col items-center justify-center py-10 space-y-2">
+                <Loader2 className="h-6 w-6 text-indigo-500 animate-spin" />
+                <span className="text-xs text-slate-500">Loading plan milestones...</span>
+              </div>
+            ) : roadmaps.length === 0 ? (
+              <div className="text-center py-10 text-slate-500 text-xs">
+                No active preparation plans found. Generate a target job report to start.
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {/* Selector Dropdown */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Select Target Role
+                  </label>
+                  <select
+                    value={selectedRoadmapIdx}
+                    onChange={(e) => setSelectedRoadmapIdx(Number(e.target.value))}
+                    className="w-full bg-[#0b0e15]/80 border border-slate-900 hover:border-slate-800 text-xs text-slate-350 p-2.5 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500/50 cursor-pointer"
+                  >
+                    {roadmaps.map((r, idx) => (
+                      <option key={r.reportId} value={idx}>
+                        {r.jobTitle}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ))}
-            </div>
 
-            <div className="mt-6 pt-5 border-t border-slate-900/60 text-[10px] text-slate-550 flex items-center justify-between">
-              <span>Sprint Progress</span>
-              <span className="font-bold text-indigo-400">
-                {Math.round((checklist.filter((item: any) => item.checked).length / checklist.length) * 100)}% Complete
-              </span>
-            </div>
-            {/* Small simple progress indicator */}
-            <div className="w-full bg-slate-900 h-1 rounded-full overflow-hidden mt-2">
-              <div 
-                className="bg-indigo-500 h-full rounded-full transition-all duration-300"
-                style={{ width: `${(checklist.filter((item: any) => item.checked).length / checklist.length) * 100}%` }}
-              />
-            </div>
-          </div>
+                {/* Progress Indicator */}
+                {(() => {
+                  const activeRoadmap = roadmaps[selectedRoadmapIdx];
+                  if (!activeRoadmap) return null;
+                  const progress = getActiveRoadmapProgress(activeRoadmap);
+                  return (
+                    <div className="space-y-2.5 bg-[#090b12]/30 p-4 rounded-xl border border-slate-900">
+                      <div className="flex items-center justify-between text-[11px] text-slate-450 font-bold uppercase tracking-wider">
+                        <span>Checklist Progress</span>
+                        <span className="text-indigo-400">{progress}% Complete</span>
+                      </div>
+                      <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-indigo-500 h-full rounded-full transition-all duration-300"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
 
-          {/* Quick Info Box */}
-          <div className="bg-gradient-to-tr from-slate-950/80 to-[#0e111a]/80 border border-slate-900 rounded-2xl p-5 relative overflow-hidden">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
-              Agent Instruction
-            </h3>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              PrepBot uses Gemini models to assess technical correctness, structure, depth, and communication style. Focus on formatting answers with bullet points or step checklists when practicing.
-            </p>
+                {/* Day-by-Day Milestone Timelines */}
+                <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
+                  {roadmaps[selectedRoadmapIdx]?.preparationPlan?.map((plan: any) => (
+                    <div key={plan.day} className="space-y-2 bg-[#0b0e15]/30 border border-slate-900/60 p-4 rounded-xl">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-400">
+                          Day {plan.day}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">
+                          Focus
+                        </span>
+                      </div>
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                        {plan.focus}
+                      </h4>
+                      <div className="space-y-2 pt-1 border-t border-slate-900/30 mt-2">
+                        {plan.tasks?.map((task: string, taskIdx: number) => {
+                          const key = `roadmap_${roadmaps[selectedRoadmapIdx].reportId}_day_${plan.day}_task_${taskIdx}`;
+                          const isChecked = !!checkedTasks[key];
+                          return (
+                            <div 
+                              key={taskIdx}
+                              onClick={() => toggleTaskChecked(roadmaps[selectedRoadmapIdx].reportId, plan.day, taskIdx)}
+                              className="flex items-start gap-2.5 cursor-pointer group text-[11px]"
+                            >
+                              <div className={`w-3.5 h-3.5 rounded mt-0.5 flex items-center justify-center border transition-all ${
+                                isChecked 
+                                  ? 'bg-indigo-600 border-indigo-500 text-white' 
+                                  : 'border-slate-800 group-hover:border-slate-700 bg-slate-950/50'
+                              }`}>
+                                {isChecked && <span className="text-[9px] font-bold">✓</span>}
+                              </div>
+                              <span className={`leading-relaxed transition-colors ${
+                                isChecked ? 'text-slate-500 line-through' : 'text-slate-400 group-hover:text-slate-200'
+                              }`}>
+                                {task}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

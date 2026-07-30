@@ -118,6 +118,9 @@ export const jobPrepAPI = {
 
   deleteReport: (id: string) =>
     jobPrepApi.delete(`/reports/${id}`),
+
+  getPreparationRoadmaps: () =>
+    jobPrepApi.get('/reports/roadmaps'),
 };
 
 export const sessionAPI = {
